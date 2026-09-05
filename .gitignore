@@ -1,6 +1,18 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
 logs/
+artifacts/
 *.pt
+assets/g1_29dof/*.usd
+assets/g1_29dof/configuration/*.usd
+assets/motions/*.npz
+# Local operational history includes private host aliases and absolute paths.
+docs/DEEPMIMIC_LITE_EXPERIMENT.md
+docs/FULL_REFERENCE_V7_EXPERIMENT.md
+docs/PHASE_RSI_EXPERIMENT.md
+docs/RUN_LOG.md
+docs/WALKING_RECOVERY.md
 .idea/
 .vscode/
