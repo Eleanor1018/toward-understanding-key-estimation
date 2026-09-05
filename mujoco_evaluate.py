@@ -21,7 +21,12 @@ import torch
 from checkpoint_io import load_checkpoint
 from config import ModelConfig
 from motion_reference import CyclicJointReference
-from normalization import DEFAULT_JOINT_POSITIONS, JOINT_EFFORT_LIMITS
+from normalization import (
+    DEFAULT_JOINT_POSITIONS,
+    JOINT_EFFORT_LIMITS,
+    LEGACY_NORMALIZATION_TYPE,
+    NORMALIZATION_TYPE,
+)
 from normalization import normalize_command, normalize_obs
 from policy import Actor, Encoder
 from ppo import DiagonalGaussian
@@ -32,6 +37,7 @@ PHYSICS_DT = 0.001
 HISTORY_STEPS = 50
 OBS_DIM = 93
 ACTION_DIM = 29
+LEGACY_ACTION_SCALE = 0.25
 SOFT_JOINT_POSITION_LIMIT_FACTOR = 0.90
 FOOT_FORCE_CONTACT_THRESHOLD_FRACTION = 0.05
 ILLEGAL_CONTACT_FORCE_THRESHOLD_N = 10.0
@@ -258,10 +264,23 @@ def load_policy(
 ) -> tuple[Encoder, Actor, ModelConfig, dict[str, Any]]:
     checkpoint = load_checkpoint(checkpoint_path, map_location=device)
     config = ModelConfig(**checkpoint["model_config"])
-    if config.obs_dim != OBS_DIM or config.command_dim != 5 or config.action_dim != 29:
-        raise RuntimeError("MuJoCo rollout currently requires the V7 93/5/29 contract")
+    if (
+        config.obs_dim != OBS_DIM
+        or config.command_dim not in (3, 5)
+        or config.action_dim != ACTION_DIM
+    ):
+        raise RuntimeError(
+            "MuJoCo rollout requires a legacy/V7 93/(3 or 5)/29 contract"
+        )
     if getattr(config, "future_reference_dim", 0) != 0:
-        raise RuntimeError("Use a V7 checkpoint without future-reference inputs")
+        raise RuntimeError("Use a checkpoint without future-reference inputs")
+    expected_normalization = (
+        NORMALIZATION_TYPE if config.command_dim == 5 else LEGACY_NORMALIZATION_TYPE
+    )
+    if checkpoint.get("input_normalization_type") != expected_normalization:
+        raise RuntimeError(
+            "Checkpoint input normalization does not match command shape"
+        )
     encoder = Encoder(config).to(device).eval()
     actor = Actor(config).to(device).eval()
     encoder.load_state_dict(checkpoint["encoder"], strict=True)
@@ -276,22 +295,30 @@ def run_rollout(args: argparse.Namespace) -> dict[str, Any]:
     device = torch.device(args.device)
     encoder, actor, config, checkpoint = load_policy(args.checkpoint, device)
     train_args = checkpoint.get("train_args", {})
-    progress = float(train_args.get("current_reference_motion_progress", 0.0))
+    progress: float | None = None
+    natural_speed: float | None = None
+    phase_rate: float | None = None
 
     with np.load(WALK_REFERENCE_PATH, allow_pickle=False) as archive:
         joint_names = tuple(str(name) for name in archive["joint_names"].tolist())
-    reference = CyclicJointReference(WALK_REFERENCE_PATH, joint_names, device)
-    default_position_torch = torch.tensor(
-        DEFAULT_JOINT_POSITIONS,
-        dtype=torch.float32,
-        device=device,
-    )
-    reference.retarget_to_position_envelope(default_position_torch, max_offset=0.22)
-    phase_tensor = torch.zeros(1, dtype=torch.float32, device=device)
-    reference_sample = reference.sample_full_reference(phase_tensor, progress)
-    action_scales = reference_sample.action_scale[0].detach().cpu().numpy()
-    natural_speed = float(reference.natural_forward_speed(progress).item())
-    phase_rate = args.command_vx / max(natural_speed, 1.0e-6)
+    if config.command_dim == 5:
+        progress = float(train_args.get("current_reference_motion_progress", 0.0))
+        reference = CyclicJointReference(WALK_REFERENCE_PATH, joint_names, device)
+        default_position_torch = torch.tensor(
+            DEFAULT_JOINT_POSITIONS,
+            dtype=torch.float32,
+            device=device,
+        )
+        reference.retarget_to_position_envelope(default_position_torch, max_offset=0.22)
+        phase_tensor = torch.zeros(1, dtype=torch.float32, device=device)
+        reference_sample = reference.sample_full_reference(phase_tensor, progress)
+        action_scales = reference_sample.action_scale[0].detach().cpu().numpy()
+        natural_speed = float(reference.natural_forward_speed(progress).item())
+        phase_rate = abs(args.command_vx) / max(natural_speed, 1.0e-6)
+        reference_duration_s = reference.duration_s
+    else:
+        action_scales = np.full(ACTION_DIM, LEGACY_ACTION_SCALE, dtype=np.float32)
+        reference_duration_s = None
 
     model = mujoco.MjModel.from_xml_path(str(args.model))
     model.opt.timestep = PHYSICS_DT
@@ -372,16 +399,16 @@ def run_rollout(args: argparse.Namespace) -> dict[str, Any]:
 
     try:
         for policy_step in range(maximum_steps):
-            command = torch.tensor(
-                [
-                    [
-                        args.command_vx,
-                        0.0,
-                        0.0,
+            command_values = [args.command_vx, 0.0, 0.0]
+            if config.command_dim == 5:
+                command_values.extend(
+                    (
                         math.sin(2 * math.pi * phase),
                         math.cos(2 * math.pi * phase),
-                    ]
-                ],
+                    )
+                )
+            command = torch.tensor(
+                [command_values],
                 dtype=torch.float32,
                 device=device,
             )
@@ -447,7 +474,8 @@ def run_rollout(args: argparse.Namespace) -> dict[str, Any]:
             normalized_observation = normalize_obs(raw_observation.to(device))
             history = torch.roll(history, shifts=-1, dims=1)
             history[:, -1] = normalized_observation
-            phase = (phase + POLICY_DT * phase_rate / reference.duration_s) % 1.0
+            if phase_rate is not None and reference_duration_s is not None:
+                phase = (phase + POLICY_DT * phase_rate / reference_duration_s) % 1.0
             sampled_steps += 1
 
             projected_gravity_z = float(raw_observation[2].item())

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
+import torch
 
 from mujoco_evaluate import (
     ACTION_DIM,
@@ -11,6 +12,7 @@ from mujoco_evaluate import (
     clamp_joint_position_targets,
     contact_diagnostics,
     configure_pd_actuators,
+    load_policy,
     soft_joint_position_limits,
     validate_mujoco_contract,
 )
@@ -131,6 +133,23 @@ class MujocoPolicyContractTest(unittest.TestCase):
         threshold = 0.05 * self.model.body_mass.sum() * 9.81
         self.assertTrue(np.all(forces > threshold))
         self.assertFalse(illegal)
+
+    def test_legacy_v5_checkpoint_contract_is_supported(self) -> None:
+        checkpoint = (
+            Path(__file__).resolve().parents[1]
+            / "artifacts"
+            / "policy_archive"
+            / "forward_shuffle_v5_iter3500"
+            / "checkpoint_03500.pt"
+        )
+        if not checkpoint.is_file():
+            self.skipTest("local archived V5 checkpoint is not installed")
+        _, _, config, loaded = load_policy(checkpoint, torch.device("cpu"))
+        self.assertEqual(config.command_dim, 3)
+        self.assertEqual(config.future_reference_dim, 0)
+        self.assertEqual(
+            loaded["input_normalization_type"], "g1_fixed_physical_scales_v1"
+        )
 
 
 if __name__ == "__main__":
