@@ -1,0 +1,1416 @@
+--- hipyaw20/estnet/config.py
++++ klguard/estnet/config.py
+@@ -6,7 +6,7 @@
+ @dataclass(frozen=True)
+ class Config:
+     # 新动作映射使用独立schema，旧未限幅模型不能静默进入本实验。
+-    schema: str = "g1-estnet-hipyaw-limited-flat-v1"
++    schema: str = "g1-estnet-klguard-flat-v1"
+     obs_dim: int = 42
+     command_dim: int = 7
+     critic_dim: int = 61
+@@ -27,6 +27,10 @@
+     velocity_coef: float = 1.0
+     max_grad_norm: float = 1.0
+     desired_kl: float = 0.01
++    # 工程保护：检查整个估计器→actor分布；超限候选不保留。
++    kl_hard_limit: float = 0.02
++    kl_chunk_size: int = 2048
++    gradient_diagnostics: bool = True
+     min_learning_rate: float = 1e-5
+     max_learning_rate: float = 1e-3
+     horizon: int = 24
+@@ -68,8 +72,14 @@
+         return asdict(self)
+ 
+     def validate(self):
+-        if self.schema != "g1-estnet-hipyaw-limited-flat-v1":
+-            raise ValueError("This experiment requires the hip-yaw-limited EstNet schema")
++        if self.schema != "g1-estnet-klguard-flat-v1":
++            raise ValueError("This experiment requires the KL-guarded EstNet schema")
++        if not math.isfinite(self.kl_hard_limit) or not 0 < self.desired_kl <= self.kl_hard_limit:
++            raise ValueError("Require finite kl_hard_limit >= positive desired_kl")
++        if type(self.kl_chunk_size) is not int or self.kl_chunk_size < 1:
++            raise ValueError("kl_chunk_size must be a positive integer")
++        if type(self.gradient_diagnostics) is not bool:
++            raise ValueError("gradient_diagnostics must be boolean")
+         if (isinstance(self.hip_yaw_target_limit_rad, bool)
+                 or not isinstance(self.hip_yaw_target_limit_rad, (int, float))
+                 or not math.isfinite(self.hip_yaw_target_limit_rad)
+--- hipyaw20/estnet/environment.py
++++ klguard/estnet/environment.py
+@@ -253,6 +253,31 @@
+         terms = reward_terms(self._transition_state, self.params)
+         self.extras["reward_terms"] = {k: v.clone() for k, v in terms.items()}
+         reward = torch.stack(list(terms.values()), dim=-1).sum(-1)
++        # 奖励输入中的previous_*仍指向上一控制步缓冲；必须先只读采样，
++        # 再copy当前值。自动reset也尚未发生，不把新回合混进本步奖励证据。
++        recorder = getattr(self, "reward_recorder", None)
++        if recorder is not None and recorder.active:
++            phase = self.phase_offset + self.episode_length_buf * self.step_dt / self.params.gait_period
++            foot_phase, stance = gait(phase, self.params.gait_duty, self.params.gait_transition)
++            default = self.robot.data.default_joint_pos[:, self.leg_ids]
++            requested = default + self.previous_action * self.params.action_scale
++            hip_capped = requested.clone()
++            yaw = list(HIP_YAW_POLICY_COLUMNS)
++            hip_capped[:, yaw] = torch.maximum(torch.minimum(hip_capped[:, yaw],
++                default[:, yaw] + self.params.hip_yaw_target_limit_rad),
++                default[:, yaw] - self.params.hip_yaw_target_limit_rad)
++            recorder.capture_reward(self._transition_state, terms,
++                reward_phase=foot_phase, reward_stance=stance,
++                reward_episode_length=self.episode_length_buf,
++                foot_height=self.robot.data.body_pos_w[:, self.foot_ids, 2] - self.scene.env_origins[:, 2:3],
++                foot_contact=self.last_contact,
++                final_target=self.targets[:, self.leg_ids], requested_target=requested,
++                hip_capped_target=hip_capped, action_after_raw_clip=self.previous_action,
++                actual_q=self.robot.data.joint_pos[:, self.leg_ids],
++                base_pos_w=self.robot.data.root_pos_w, base_quat_wxyz=self.robot.data.root_quat_w,
++                foot_pos_w=self.robot.data.body_pos_w[:, self.foot_ids],
++                foot_quat_wxyz=self.robot.data.body_quat_w[:, self.foot_ids],
++                total_reward=reward)
+         self.previous_force.copy_(self._transition_state["foot_force"])
+         self.previous_torque.copy_(self._transition_state["torque"])
+         self.previous_joint_velocity.copy_(self._transition_state["joint_vel"])
+--- hipyaw20/estnet/ppo.py
++++ klguard/estnet/ppo.py
+@@ -2,9 +2,11 @@
+ 
+ Missing paper details are engineering choices: raw Gaussian, clipped value loss,
+ whole-rollout advantage normalization, and bidirectional KL learning-rate control.
++This independent diagnostic branch adds full-policy post-step acceptance/rollback.
+ """
+ from __future__ import annotations
+ 
++import copy
+ import math
+ from typing import Any
+ 
+@@ -13,6 +15,7 @@
+ from torch.nn import functional as F
+ 
+ from .networks import EstNet
++from .ppo_diagnostics import cpu_clone_tree, finite_tensor_tree, full_rollout_kl, loss_gradient_diagnostics
+ 
+ 
+ @torch.no_grad()
+@@ -73,16 +76,30 @@
+             raise ValueError("epochs and minibatches must be positive")
+         if not 0.0 < cfg.min_learning_rate <= cfg.learning_rate <= cfg.max_learning_rate:
+             raise ValueError("Learning-rate bounds must contain the initial learning rate")
++        self.kl_hard_limit = float(getattr(cfg, "kl_hard_limit", 0.02))
++        self.kl_chunk_size = getattr(cfg, "kl_chunk_size", 2048)
++        if not math.isfinite(self.kl_hard_limit) or self.kl_hard_limit <= 0:
++            raise ValueError("kl_hard_limit must be finite and positive")
++        if isinstance(self.kl_chunk_size, bool) or not isinstance(self.kl_chunk_size, int) or self.kl_chunk_size < 1:
++            raise ValueError("kl_chunk_size must be a positive integer")
+         self.optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
+         self.updates = 0
++        self.total_accepted_steps = 0
++        self.diagnostic_callback = None
++        self.replay_callback = None
+ 
+     def state_dict(self) -> dict[str, Any]:
+         """Optimizer/scheduler state; the runner saves model weights separately."""
+-        return {"optimizer": self.optimizer.state_dict(), "updates": self.updates}
++        return {"optimizer": self.optimizer.state_dict(), "updates": self.updates,
++                "total_accepted_steps": self.total_accepted_steps}
+ 
+     def load_state_dict(self, state: dict[str, Any]) -> None:
++        for name in ("updates", "total_accepted_steps"):
++            if name not in state or isinstance(state[name], bool) or not isinstance(state[name], int) or state[name] < 0:
++                raise ValueError(f"Guard checkpoint requires a nonnegative integer {name}")
+         self.optimizer.load_state_dict(state["optimizer"])
+-        self.updates = int(state.get("updates", 0))
++        self.updates = state["updates"]
++        self.total_accepted_steps = state["total_accepted_steps"]
+ 
+     @property
+     def learning_rate(self) -> float:
+@@ -99,8 +116,24 @@
+         for group in self.optimizer.param_groups:
+             group["lr"] = rate
+ 
+-    def update(self, batch: dict[str, torch.Tensor]) -> dict[str, float]:
+-        """Optimize one flat rollout, retaining PPO -> estimator gradients."""
++    def _emit(self, event: dict[str, Any]) -> None:
++        if self.diagnostic_callback is not None:
++            self.diagnostic_callback(event)
++
++    def _restore_rejected_step(self, model_state, optimizer_state) -> None:
++        self.model.load_state_dict(model_state, strict=True)
++        self.optimizer.load_state_dict(optimizer_state)
++        self.optimizer.zero_grad(set_to_none=True)
++        for group in self.optimizer.param_groups:
++            group["lr"] = max(self.cfg.min_learning_rate, float(group["lr"]) / 1.5)
++
++    def update(self, batch: dict[str, torch.Tensor]) -> dict[str, Any]:
++        """Joint PPO/estimation with a post-step full-rollout KL acceptance test.
++
++        A rejected step restores model + Adam and stops the ENTIRE joint update.
++        Loss/norm summaries cover attempted minibatches; gradient_steps counts
++        retained steps. Diagnostic callbacks contain JSON-safe per-attempt evidence.
++        """
+         required = (
+             "history", "obs", "command", "critic", "velocity", "action",
+             "old_log_prob", "old_value", "old_mean", "old_std", "returns", "advantages",
+@@ -132,14 +165,41 @@
+             "clip_fraction", "grad_norm",
+         )}
+         samples_seen = 0
+-        gradient_steps = 0
+-        last_kl = 0.0
+-        for _ in range(self.cfg.epochs):
++        attempted = accepted = rejected = 0
++        if not finite_tensor_tree(self.optimizer.state_dict()):
++            raise FloatingPointError("Pre-update optimizer state is non-finite")
++        current_kl = full_rollout_kl(self.model, data, self.kl_chunk_size)
++        if not current_kl["finite"] or current_kl["total"] > self.kl_hard_limit:
++            raise FloatingPointError("Pre-update policy already violates full-rollout KL guard")
++        initial_kl = copy.deepcopy(current_kl)
++        last_candidate = copy.deepcopy(current_kl)
++        iteration = self.updates + 1
++        stopped = False
++        for epoch_index in range(self.cfg.epochs):
+             order = torch.randperm(count, device=data["action"].device)
+-            for indices in torch.tensor_split(order, self.cfg.minibatches):
++            for minibatch_index, indices in enumerate(torch.tensor_split(order, self.cfg.minibatches)):
+                 size = indices.numel()
+                 if size == 0:
+                     continue
++                if attempted == 0 and self.replay_callback is not None:
++                    # Construct large CPU data only when explicitly requested.
++                    self.replay_callback({
++                        "schema": "estnet-guard-first-minibatch-replay-v1",
++                        "iteration": iteration, "epoch": epoch_index + 1,
++                        "minibatch": minibatch_index + 1, "full_rollout_count": count,
++                        "advantages_normalized_over_full_rollout": True,
++                        "indices": indices.detach().cpu().clone(),
++                        "data": cpu_clone_tree({key: value[indices] for key, value in data.items()}),
++                        "model": cpu_clone_tree(self.model.state_dict()),
++                        "optimizer": cpu_clone_tree(self.optimizer.state_dict()),
++                        "cfg": copy.deepcopy(self.cfg.to_dict() if hasattr(self.cfg, "to_dict") else vars(self.cfg)),
++                        "total_accepted_steps": self.total_accepted_steps,
++                        "note": "Current diagnostic minibatch, not a replay of historical iteration 415.",
++                    })
++                pre_kl = copy.deepcopy(current_kl)
++                lr_before = self.learning_rate
++                model_state = copy.deepcopy(self.model.state_dict())
++                optimizer_state = copy.deepcopy(self.optimizer.state_dict())
+                 distribution, velocity = self.model(
+                     data["history"][indices], data["obs"][indices], data["command"][indices]
+                 )
+@@ -164,40 +224,103 @@
+                         + self.cfg.velocity_coef * velocity_loss)
+                 if not torch.isfinite(loss):
+                     raise FloatingPointError("Non-finite joint PPO/velocity loss")
++                gradient_diagnostics = None
++                if getattr(self.cfg, "gradient_diagnostics", False):
++                    gradient_diagnostics = loss_gradient_diagnostics(
++                        self.model,
++                        {"policy": policy_loss, "value": value_loss, "velocity": velocity_loss, "entropy": entropy},
++                        {"policy": 1.0, "value": self.cfg.value_coef,
++                         "velocity": self.cfg.velocity_coef, "entropy": -self.cfg.entropy_coef},
++                    )
+                 self.optimizer.zero_grad(set_to_none=True)
+                 loss.backward()
+                 grad_norm = nn.utils.clip_grad_norm_(
+                     self.model.parameters(), self.cfg.max_grad_norm, error_if_nonfinite=True
+                 )
+-                self.optimizer.step()
+-                self.model.clamp_std_()
++                attempted += 1
++                try:
++                    self.optimizer.step()
++                    self.model.clamp_std_()
++                    candidate_kl = full_rollout_kl(self.model, data, self.kl_chunk_size)
++                    candidate_adam_finite = finite_tensor_tree(self.optimizer.state_dict())
++                except Exception:
++                    # Never leave a partly applied optimizer step on a contract/runtime error.
++                    self.model.load_state_dict(model_state, strict=True)
++                    self.optimizer.load_state_dict(optimizer_state)
++                    self.optimizer.zero_grad(set_to_none=True)
++                    raise
++                last_candidate = copy.deepcopy(candidate_kl)
++                reject_reason = ("nonfinite_optimizer_state" if not candidate_adam_finite else
++                                 candidate_kl["reason"] if not candidate_kl["finite"] else
++                                 "kl_hard_limit_exceeded" if candidate_kl["total"] > self.kl_hard_limit else None)
++                if reject_reason is not None:
++                    self._restore_rejected_step(model_state, optimizer_state)
++                    current_kl = full_rollout_kl(self.model, data, self.kl_chunk_size)
++                    rejected += 1
++                    stopped = True
++                else:
++                    # Candidate is already the post-step model: this full-rollout
++                    # measurement is the acceptance verification, not a sampled proxy.
++                    current_kl = copy.deepcopy(candidate_kl)
++                    accepted += 1
++                    self.total_accepted_steps += 1
++                del model_state, optimizer_state
++                if not current_kl["finite"] or current_kl["total"] > self.kl_hard_limit:
++                    raise FloatingPointError("Retained model violates KL guard after candidate/rollback")
+                 values = {
+                     "loss": loss, "policy_loss": policy_loss, "value_loss": value_loss,
+                     "velocity_loss": velocity_loss, "entropy": entropy, "grad_norm": grad_norm,
+                     "clip_fraction": ((ratio - 1.0).abs() > self.cfg.clip).float().mean(),
+                 }
+-                for key, value in values.items():
+-                    totals[key] += float(value.detach()) * size
++                scalar_values = {key: float(value.detach()) for key, value in values.items()}
++                for key, value in scalar_values.items():
++                    totals[key] += value * size
+                 samples_seen += size
+-                gradient_steps += 1
+-            # Measure all samples and the entire estimator->actor policy. This
+-            # adjusts the next epoch/rollout LR; it neither rejects nor rolls back.
+-            with torch.no_grad():
+-                current = self.model.distribution(data["history"], data["obs"], data["command"])
+-                last_kl = gaussian_kl(
+-                    data["old_mean"], data["old_std"], current.mean, current.stddev
+-                ).mean().item()
+-            if not math.isfinite(last_kl):
+-                raise FloatingPointError("Non-finite post-epoch policy KL")
+-            last_kl = max(0.0, last_kl)
+-            self._adapt_learning_rate(last_kl)
++                self._emit({
++                    "event": "ppo_minibatch_guard", "iteration": iteration, "epoch": epoch_index + 1,
++                    "minibatch": minibatch_index + 1, "minibatch_samples": size, "rollout_samples": count,
++                    "attempted_steps": attempted, "accepted_steps": accepted, "rejected_steps": rejected,
++                    "total_accepted_steps": self.total_accepted_steps, "status": "rejected" if stopped else "accepted",
++                    "rejection_reason": reject_reason, "kl_hard_limit": self.kl_hard_limit,
++                    "candidate_optimizer_state_finite": candidate_adam_finite,
++                    "kl_chunk_size": self.kl_chunk_size, "pre_kl": pre_kl, "candidate_kl": candidate_kl,
++                    "retained_kl": current_kl, "lr_before": lr_before, "lr_after": self.learning_rate,
++                    "losses_and_preclip_norm": scalar_values, "gradient_diagnostics": gradient_diagnostics,
++                    "loss_summary_scope": "attempted minibatch before its candidate step",
++                })
++                if stopped:
++                    break
++            if stopped:
++                break
++            lr_before_schedule = self.learning_rate
++            self._adapt_learning_rate(current_kl["total"])
++            self._emit({"event": "ppo_epoch_schedule", "iteration": iteration, "epoch": epoch_index + 1,
++                        "retained_kl": current_kl, "lr_before": lr_before_schedule, "lr_after": self.learning_rate})
++        # Re-read the final retained estimator->actor policy before returning success.
++        current_kl = full_rollout_kl(self.model, data, self.kl_chunk_size)
++        if not current_kl["finite"] or current_kl["total"] > self.kl_hard_limit:
++            raise FloatingPointError("Final retained model violates full-rollout KL guard")
++        if not finite_tensor_tree(self.optimizer.state_dict()):
++            raise FloatingPointError("Final retained optimizer state is non-finite")
+         self.updates += 1
+         metrics = {key: value / samples_seen for key, value in totals.items()}
+         metrics.update({
+-            "kl": last_kl,
++            "kl": current_kl["total"],
++            "pre_kl": initial_kl["total"],
++            "candidate_kl": last_candidate["total"],
++            "retained_kl": current_kl["total"],
++            "candidate_kl_finite": float(last_candidate["finite"]),
+             "learning_rate": self.learning_rate,
+             "velocity_rmse": math.sqrt(metrics["velocity_loss"]),
+             "action_std": self.model.log_std.detach().exp().mean().item(),
+-            "gradient_steps": float(gradient_steps),
++            "gradient_steps": float(accepted),
++            "attempted_steps": float(attempted), "accepted_steps": float(accepted),
++            "rejected_steps": float(rejected), "total_accepted_steps": float(self.total_accepted_steps),
++            "guard_stopped_update": float(stopped),
+         })
++        self._emit({"event": "ppo_update_guard_summary", "iteration": iteration,
++                    "attempted_steps": attempted, "accepted_steps": accepted, "rejected_steps": rejected,
++                    "total_accepted_steps": self.total_accepted_steps, "pre_kl": initial_kl,
++                    "candidate_kl": last_candidate, "retained_kl": current_kl,
++                    "learning_rate": self.learning_rate, "stopped_joint_update": stopped})
+         return metrics
+--- hipyaw20/estnet/ppo_diagnostics.py
++++ klguard/estnet/ppo_diagnostics.py
+@@ -0,0 +1,161 @@
++"""Read-only full-policy KL and loss-gradient diagnostics for a short PPO audit."""
++from __future__ import annotations
++
++import copy
++import math
++from typing import Any
++
++import torch
++
++
++def cpu_clone_tree(value: Any) -> Any:
++    """Independent CPU snapshot, retaining mapping metadata where present."""
++    if isinstance(value, torch.Tensor):
++        return value.detach().cpu().clone()
++    if isinstance(value, dict):
++        result = copy.copy(value)
++        for key, item in value.items():
++            result[key] = cpu_clone_tree(item)
++        if hasattr(value, "_metadata"):
++            result._metadata = copy.deepcopy(value._metadata)
++        return result
++    if isinstance(value, list):
++        return [cpu_clone_tree(item) for item in value]
++    if isinstance(value, tuple):
++        return tuple(cpu_clone_tree(item) for item in value)
++    return copy.deepcopy(value)
++
++
++def finite_tensor_tree(value: Any) -> bool:
++    """Check candidate Adam moments/counters too, without copying them to CPU."""
++    if isinstance(value, torch.Tensor):
++        return bool(torch.isfinite(value).all().item())
++    if isinstance(value, dict):
++        return all(finite_tensor_tree(item) for item in value.values())
++    if isinstance(value, (list, tuple)):
++        return all(finite_tensor_tree(item) for item in value)
++    if isinstance(value, float):
++        return math.isfinite(value)
++    return True
++
++
++@torch.no_grad()
++def full_rollout_kl(model, data: dict[str, torch.Tensor], chunk_size: int = 2048) -> dict[str, Any]:
++    """Exact KL(old || current estimator->actor), all samples, bounded forward chunks.
++
++    Accumulation and Gaussian arithmetic use float64; no rollout tensor is changed.
++    A non-finite candidate is represented by JSON nulls, never NaN/Infinity.
++    """
++    if isinstance(chunk_size, bool) or not isinstance(chunk_size, int) or chunk_size < 1:
++        raise ValueError("KL chunk_size must be a positive integer")
++    count, dims = data["old_mean"].shape
++    if count < 1 or data["old_std"].shape != (count, dims):
++        raise ValueError("KL expects nonempty old_mean/old_std of shape [N, action_dim]")
++
++    def invalid(reason):
++        return {"finite": False, "total": None, "mean_per_joint": None,
++                "variance_per_joint": None, "per_joint": None, "samples": count,
++                "reason": reason}
++
++    # Covers candidate critic/estimator parameters and buffers as well as policy outputs.
++    for tensor in model.state_dict().values():
++        if isinstance(tensor, torch.Tensor) and not torch.isfinite(tensor).all().item():
++            return invalid("nonfinite_model_state")
++    mean_sum = torch.zeros(dims, dtype=torch.float64, device=data["old_mean"].device)
++    variance_sum = torch.zeros_like(mean_sum)
++    for start in range(0, count, chunk_size):
++        stop = min(start + chunk_size, count)
++        try:
++            current = model.distribution(data["history"][start:stop], data["obs"][start:stop],
++                                         data["command"][start:stop])
++        except ValueError as error:
++            # torch.distributions.Normal validates a non-finite mean/scale by raising.
++            return invalid("invalid_candidate_distribution: " + str(error)[:160])
++        old_mean = data["old_mean"][start:stop].double()
++        old_std = data["old_std"][start:stop].double()
++        new_mean, new_std = current.mean.double(), current.stddev.double()
++        if new_mean.shape != old_mean.shape or new_std.shape != old_std.shape:
++            raise ValueError("Candidate policy has an incompatible Gaussian shape")
++        if (not all(torch.isfinite(t).all().item() for t in (old_mean, old_std, new_mean, new_std))
++                or not (old_std > 0).all().item() or not (new_std > 0).all().item()):
++            return invalid("nonfinite_or_nonpositive_policy_distribution")
++        mean_term = (old_mean - new_mean).square() / (2.0 * new_std.square())
++        variance_term = (torch.log(new_std / old_std) + old_std.square() /
++                         (2.0 * new_std.square()) - 0.5).clamp_min(0.0)
++        if not torch.isfinite(mean_term).all().item() or not torch.isfinite(variance_term).all().item():
++            return invalid("nonfinite_gaussian_kl")
++        mean_sum += mean_term.sum(0)
++        variance_sum += variance_term.sum(0)
++    mean_joint = mean_sum / count
++    variance_joint = variance_sum / count
++    joint = mean_joint + variance_joint
++    total = joint.sum().item()
++    if not math.isfinite(total):
++        return invalid("nonfinite_accumulated_kl")
++    return {"finite": True, "total": total, "mean_per_joint": mean_joint.cpu().tolist(),
++            "variance_per_joint": variance_joint.cpu().tolist(), "per_joint": joint.cpu().tolist(),
++            "samples": count, "reason": None, "coordinate_order": "policy_action_columns"}
++
++
++def loss_gradient_diagnostics(model, terms: dict[str, torch.Tensor],
++                              weights: dict[str, float]) -> dict[str, Any]:
++    """Autograd probes do not populate/modify .grad or change the loss graph.
++
++    Norms describe gradient scale, not causal attribution or Adam parameter steps.
++    Entropy is reported as positive entropy; its objective weight is negative.
++    """
++    named = [(name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad]
++    parameters = [parameter for _, parameter in named]
++    if not parameters:
++        raise ValueError("Gradient diagnostics require trainable parameters")
++    groups = {name: [] for name in ("actor", "critic", "estimator", "log_std", "other")}
++    for index, (name, _) in enumerate(named):
++        group = next((group for group in groups if name == group or name.startswith(group + ".")), "other")
++        groups[group].append(index)
++
++    gradients = {}
++    for name, term in terms.items():
++        gradients[name] = (torch.autograd.grad(term, parameters, retain_graph=True, allow_unused=True)
++                           if term.requires_grad else (None,) * len(parameters))
++
++    def norm(grads, indices):
++        squares = [grads[index].detach().double().square().sum() for index in indices if grads[index] is not None]
++        return torch.stack(squares).sum().sqrt().item() if squares else 0.0
++
++    all_indices = list(range(len(parameters)))
++    reported_groups = {**groups, "all": all_indices}
++    raw_norms = {term: {group: norm(grads, indices) for group, indices in reported_groups.items()}
++                 for term, grads in gradients.items()}
++    weighted_norms = {term: {group: abs(weights[term]) * value for group, value in values.items()}
++                      for term, values in raw_norms.items()}
++    ppo_grads = []
++    supervised_grads = []
++    for index in all_indices:
++        pieces = [weights[name] * gradients[name][index] for name in ("policy", "value", "entropy")
++                  if gradients[name][index] is not None]
++        ppo_grads.append(sum(pieces) if pieces else None)
++        grad = gradients["velocity"][index]
++        supervised_grads.append(None if grad is None else weights["velocity"] * grad)
++
++    alignment = {}
++    for group in ("estimator", "all"):
++        indices = reported_groups[group]
++        ppo_norm, supervised_norm = norm(ppo_grads, indices), norm(supervised_grads, indices)
++        dots = [(ppo_grads[i].detach().double() * supervised_grads[i].detach().double()).sum()
++                for i in indices if ppo_grads[i] is not None and supervised_grads[i] is not None]
++        dot = torch.stack(dots).sum().item() if dots else 0.0
++        cosine = (max(-1.0, min(1.0, dot / (ppo_norm * supervised_norm)))
++                  if ppo_norm > 0 and supervised_norm > 0 else None)
++        alignment[group] = {"ppo_norm": ppo_norm, "supervised_norm": supervised_norm,
++                            "cosine": cosine, "angle_degrees": None if cosine is None else math.degrees(math.acos(cosine))}
++    result = {"raw_term_preclip_norms": raw_norms, "weighted_term_preclip_norms": weighted_norms,
++              "objective_weights": weights, "supervised_vs_ppo": alignment,
++              "meaning": "Gradient scales/alignment only; not causal attribution or Adam update magnitudes."}
++
++    def json_finite(value):
++        if isinstance(value, float):
++            return value if math.isfinite(value) else None
++        if isinstance(value, dict):
++            return {key: json_finite(item) for key, item in value.items()}
++        return value
++    return json_finite(result)
+--- hipyaw20/estnet/replay_diagnostics.py
++++ klguard/estnet/replay_diagnostics.py
+@@ -0,0 +1,299 @@
++"""真实新快照上的一步损失分支反事实；默认CPU，绝不连接训练器或执行仿真。"""
++from __future__ import annotations
++
++import argparse
++import copy
++import hashlib
++import json
++import math
++from pathlib import Path
++from typing import Any
++
++import torch
++from torch.nn import functional as F
++
++from .config import Config
++from .networks import EstNet
++from .ppo_diagnostics import full_rollout_kl
++
++BRANCHES = ('full', 'policy', 'velocity', 'entropy', 'value', 'zero_current_gradient')
++FIELDS = ('history', 'obs', 'command', 'critic', 'velocity', 'action', 'old_log_prob',
++          'old_value', 'old_mean', 'old_std', 'returns', 'advantages')
++
++
++def tree_sha256(value: Any) -> str:
++    """哈希张量内容、形状、dtype及嵌套结构；不依赖torch.save容器的非确定元数据。"""
++    digest = hashlib.sha256()
++
++    def visit(item):
++        if isinstance(item, torch.Tensor):
++            tensor = item.detach().cpu().contiguous()
++            digest.update(json.dumps(['tensor', str(tensor.dtype), list(tensor.shape)]).encode())
++            digest.update(tensor.reshape(-1).view(torch.uint8).numpy().tobytes())
++        elif isinstance(item, dict):
++            digest.update(b'{')
++            for key in sorted(item, key=lambda k: (type(k).__name__, repr(k))):
++                visit(key)
++                visit(item[key])
++            digest.update(b'}')
++        elif isinstance(item, (list, tuple)):
++            digest.update(type(item).__name__.encode() + b'[')
++            for part in item:
++                visit(part)
++            digest.update(b']')
++        else:
++            digest.update(json.dumps([type(item).__name__, item], allow_nan=False).encode())
++    visit(value)
++    return digest.hexdigest()
++
++
++def _write_json(path: Path, value: Any) -> None:
++    temporary = path.with_suffix(path.suffix + '.tmp')
++    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf8')
++    temporary.replace(path)
++
++
++def _losses(model, data, cfg):
++    """和本版PPO相同的四项损失；advantages已经整rollout归一化，不能再次归一化。"""
++    distribution, velocity = model(data['history'], data['obs'], data['command'])
++    ratio = torch.exp(distribution.log_prob(data['action']).sum(-1) - data['old_log_prob'])
++    policy = -torch.minimum(ratio * data['advantages'],
++        ratio.clamp(1-cfg.clip, 1+cfg.clip) * data['advantages']).mean()
++    value = model.value(data['critic'])
++    clipped = data['old_value'] + (value-data['old_value']).clamp(-cfg.clip, cfg.clip)
++    value_loss = torch.maximum((value-data['returns']).square(),
++        (clipped-data['returns']).square()).mean()
++    velocity_loss = F.mse_loss(velocity, data['velocity'])
++    entropy = distribution.entropy().sum(-1).mean()
++    return {'policy': policy, 'value': cfg.value_coef*value_loss,
++        'velocity': cfg.velocity_coef*velocity_loss, 'entropy': -cfg.entropy_coef*entropy}
++
++
++@torch.no_grad()
++def _baseline_outputs(model, data, chunk_size):
++    means, stds, velocities = [], [], []
++    for begin in range(0, len(data['action']), chunk_size):
++        sl = slice(begin, begin+chunk_size)
++        dist, velocity = model(data['history'][sl], data['obs'][sl], data['command'][sl])
++        means.append(dist.mean.detach().clone())
++        stds.append(dist.stddev.detach().clone())
++        velocities.append(velocity.detach().cpu().double())
++    return torch.cat(means), torch.cat(stds), torch.cat(velocities)
++
++
++@torch.no_grad()
++def _estimator_change(model, data, initial_velocity, chunk_size):
++    count = len(data['action'])
++    squares = torch.zeros(3, dtype=torch.float64)
++    signed = torch.zeros_like(squares)
++    absolute = torch.zeros_like(squares)
++    maximum = torch.zeros_like(squares)
++    for begin in range(0, count, chunk_size):
++        stop = min(begin+chunk_size, count)
++        current = model.estimate(data['history'][begin:stop]).cpu().double()
++        if not torch.isfinite(current).all():
++            return {'finite': False, 'samples': count, 'reason': 'nonfinite_estimator_output'}
++        delta = current-initial_velocity[begin:stop]
++        squares += delta.square().sum(0)
++        signed += delta.sum(0)
++        absolute += delta.abs().sum(0)
++        maximum = torch.maximum(maximum, delta.abs().amax(0))
++    return {'finite': True, 'samples': count, 'mean_change_xyz_mps': (signed/count).tolist(),
++        'rmse_change_xyz_mps': (squares/count).sqrt().tolist(),
++        'mean_abs_change_xyz_mps': (absolute/count).tolist(),
++        'max_abs_change_xyz_mps': maximum.tolist()}
++
++
++def _parameter_change(model, initial):
++    groups = {}
++    for name, parameter in model.named_parameters():
++        group = name.split('.')[0]
++        delta = parameter.detach().cpu().double()-initial[name].cpu().double()
++        row = groups.setdefault(group, {'sum_squares': 0., 'max_abs': 0., 'elements': 0, 'finite': True})
++        if not torch.isfinite(delta).all():
++            row['finite'] = False
++            continue
++        row['sum_squares'] += float(delta.square().sum())
++        row['max_abs'] = max(row['max_abs'], float(delta.abs().max()))
++        row['elements'] += delta.numel()
++    for row in groups.values():
++        square = row.pop('sum_squares')
++        row['l2'] = math.sqrt(square) if row['finite'] else None
++        if not row['finite']:
++            row['max_abs'] = None
++    return groups
++
++
++def run_counterfactuals(snapshot, *, device='cpu', limit_samples=None, chunk_size=1024,
++                       cpu_threads=8, branches=BRANCHES, output_dir=None):
++    """从同一初始模型/Adam做各一次候选步；无KL回滚和LR调度。
++
++    only表示当前loss梯度只来自一项；其余参数显式零梯度，仍保留Adam历史动量。
++    limit_samples只减少用于反向传播的数据，KL仍遍历整个已保存snapshot观测集。
++    分块均值按样本数加权，再统一global clip；不改变原adv，不把分块视为多次Adam。
++    """
++    if type(cpu_threads) is not int or not 1 <= cpu_threads <= 8:
++        raise ValueError('cpu_threads必须为1..8')
++    torch.set_num_threads(cpu_threads)
++    if snapshot.get('schema') != 'estnet-guard-first-minibatch-replay-v1':
++        raise ValueError('必须使用本次真实guard minibatch快照schema')
++    if snapshot.get('advantages_normalized_over_full_rollout') is not True:
++        raise ValueError('快照必须含已整rollout归一化的advantages')
++    for name in ('iteration', 'epoch', 'minibatch', 'full_rollout_count'):
++        if type(snapshot.get(name)) is not int or snapshot[name] < 1:
++            raise ValueError(f'快照{name}必须为正整数')
++    cfg = Config(**snapshot['cfg'])
++    cfg.validate()
++    if type(chunk_size) is not int or chunk_size < 1:
++        raise ValueError('chunk_size必须为正整数')
++    if not branches or len(set(branches)) != len(branches) or any(x not in BRANCHES for x in branches):
++        raise ValueError('无效或重复的反事实分支')
++    target = torch.device(device)
++    if target.type not in ('cpu', 'cuda') or target.type == 'cuda' and target.index is None:
++        raise ValueError('device须为cpu或明确cuda:N；工具不会自行选择空卡')
++    if target.type == 'cuda':
++        torch.cuda.set_device(target)
++    initial_model = copy.deepcopy(snapshot['model'])
++    initial_adam = copy.deepcopy(snapshot['optimizer'])
++    if not isinstance(initial_adam, dict) or not initial_adam.get('param_groups'):
++        raise ValueError('需要完整Adam原state_dict，不能用仅模型快照')
++    rates = [group.get('lr') for group in initial_adam['param_groups']]
++    if any(not isinstance(x, (float, int)) or isinstance(x, bool) or not math.isfinite(x) or x <= 0 for x in rates):
++        raise ValueError('快照Adam LR必须为有限正数')
++    data = {key: snapshot['data'][key].detach().to(target) for key in FIELDS}
++    count = len(data['action'])
++    if count < 1 or count > snapshot['full_rollout_count']:
++        raise ValueError('快照样本数超出完整rollout范围')
++    indices = snapshot['indices']
++    if (not isinstance(indices, torch.Tensor) or indices.shape != (count,)
++            or indices.dtype != torch.int64 or indices.unique().numel() != count
++            or int(indices.min()) < 0 or int(indices.max()) >= snapshot['full_rollout_count']):
++        raise ValueError('快照indices与真实minibatch不一致')
++    shapes = {'history': (count, cfg.history_steps, cfg.obs_dim), 'obs': (count, cfg.obs_dim),
++        'command': (count, cfg.command_dim), 'critic': (count, cfg.critic_dim),
++        'velocity': (count, 3), 'action': (count, cfg.action_dim),
++        'old_mean': (count, cfg.action_dim), 'old_std': (count, cfg.action_dim)}
++    for key, tensor in data.items():
++        expected = shapes.get(key, (count,))
++        if tensor.shape != expected or not tensor.is_floating_point() or not torch.isfinite(tensor).all():
++            raise ValueError(f'快照{key}形状/dtype/有限性无效')
++    if not (data['old_std'] > 0).all():
++        raise ValueError('old_std必须为正')
++    if limit_samples is not None and (type(limit_samples) is not int or not 1 <= limit_samples <= count):
++        raise ValueError('limit_samples须为1..快照样本数')
++    used = count if limit_samples is None else limit_samples
++
++    def fresh():
++        # 构造网络产生的CPU随机初始化立即被覆盖，且不污染调用者CPU RNG。
++        with torch.random.fork_rng(devices=[]):
++            model = EstNet(cfg).to(target)
++        model.load_state_dict(initial_model, strict=True)
++        model.train()
++        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
++        optimizer.load_state_dict(copy.deepcopy(initial_adam))
++        return model, optimizer
++
++    base, optimizer = fresh()
++    initial_model_hash = tree_sha256(base.state_dict())
++    initial_adam_hash = tree_sha256(optimizer.state_dict())
++    mean, std, initial_velocity = _baseline_outputs(base, data, chunk_size)
++    initial_kl = full_rollout_kl(base, data, chunk_size)
++    if not initial_kl['finite']:
++        raise ValueError('初始快照模型分布非有限')
++    snapshot_reference = {**data, 'old_mean': mean, 'old_std': std}
++    del base, optimizer
++    report = {'schema': 'estnet-guard-one-step-counterfactual-v1', 'status': 'running',
++        'branches_requested': list(branches),
++        'snapshot_iteration': snapshot['iteration'], 'snapshot_epoch': snapshot['epoch'],
++        'snapshot_minibatch': snapshot['minibatch'], 'snapshot_total_accepted_steps': snapshot.get('total_accepted_steps'),
++        'full_training_rollout_count': snapshot['full_rollout_count'], 'snapshot_samples': count,
++        'optimization_samples': used, 'kl_observation_samples': count, 'subset_conditioned_experiment': used != count,
++        'sample_selection': '快照原顺序前limit_samples个；不重新shuffle或归一化adv',
++        'indices_sha256': tree_sha256(indices), 'optimization_indices_sha256': tree_sha256(indices[:used]),
++        'device': str(target), 'cpu_threads': cpu_threads, 'backward_chunk_size': chunk_size,
++        'initial_model_sha256': initial_model_hash, 'initial_adam_sha256': initial_adam_hash,
++        'initial_learning_rates': rates, 'initial_kl_on_snapshot': initial_kl,
++        'scope': '全部已保存snapshot观测上的KL，不是完整训练rollout的KL护栏验收；没有环境推进或历史415重放',
++        'adam_semantics': '所有分支保留同一Adam历史；未连接的当前loss梯度填0，不用None跳过参数。zero_current_gradient仍可因历史动量/weight_decay改变权重。',
++        'update_semantics': '每分支单次Adam+原global gradient clip+log_std clamp；不回滚、不改变LR、不更新训练计数',
++        'branches': {}}
++    if output_dir is not None:
++        output_dir = Path(output_dir)
++        output_dir.mkdir(parents=True, exist_ok=False)
++        _write_json(output_dir/'manifest.json', {key: value for key, value in report.items() if key != 'branches'})
++    for branch in branches:
++        model, optimizer = fresh()
++        start_model_hash = tree_sha256(model.state_dict())
++        start_adam_hash = tree_sha256(optimizer.state_dict())
++        if start_model_hash != initial_model_hash or start_adam_hash != initial_adam_hash:
++            raise RuntimeError('反事实初始状态不一致')
++        optimizer.zero_grad(set_to_none=True)
++        components = {key: 0. for key in ('policy', 'value', 'velocity', 'entropy')}
++        for begin in range(0, used, chunk_size):
++            stop = min(begin+chunk_size, used)
++            pieces = _losses(model, {key: tensor[begin:stop] for key, tensor in data.items()}, cfg)
++            if any(not torch.isfinite(term) for term in pieces.values()):
++                raise FloatingPointError('初始loss分支存在非有限值')
++            weight = (stop-begin)/used
++            for key, term in pieces.items():
++                components[key] += float(term.detach())*weight
++            if branch != 'zero_current_gradient':
++                objective = (pieces['policy']+pieces['value']+pieces['entropy']+pieces['velocity']) if branch == 'full' else pieces[branch]
++                (objective*weight).backward()
++        # 用显式0梯度留下其他模块的历史动量影响，才能与full的同一Adam步骤比较。
++        filled = 0
++        for parameter in model.parameters():
++            if parameter.grad is None:
++                parameter.grad = torch.zeros_like(parameter)
++                filled += 1
++        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm, error_if_nonfinite=True)
++        optimizer.step()
++        model.clamp_std_()
++        kl = full_rollout_kl(model, data, chunk_size)
++        from_snapshot = full_rollout_kl(model, snapshot_reference, chunk_size)
++        result = {'initial_model_sha256': start_model_hash, 'initial_adam_sha256': start_adam_hash,
++            'learning_rates': [g['lr'] for g in optimizer.param_groups], 'weighted_loss_components': components,
++            'current_objective': sum(components.values()) if branch == 'full' else components.get(branch, 0.),
++            'preclip_gradient_norm': float(norm), 'parameters_receiving_explicit_zero_gradient': filled,
++            'kl_rollout_old_to_candidate_on_snapshot': kl,
++            'kl_snapshot_model_to_candidate_on_snapshot': from_snapshot,
++            'estimator_change': _estimator_change(model, data, initial_velocity, chunk_size),
++            'model_sha256_after': tree_sha256(model.state_dict()),
++            'adam_sha256_after': tree_sha256(optimizer.state_dict()),
++            'parameter_change_from_initial': _parameter_change(model, initial_model)}
++        report['branches'][branch] = result
++        if output_dir is not None:
++            _write_json(output_dir/f'branch-{branch}.json', result)
++            _write_json(output_dir/'result.json', report)
++        print(json.dumps({'event': 'counterfactual_branch_complete', 'branch': branch,
++            'snapshot_kl': kl['total'], 'kl_samples': count, 'gradient_samples': used}, allow_nan=False), flush=True)
++        del model, optimizer
++    report['status'] = 'completed'
++    report['all_branch_candidates_finite'] = all(
++        row['kl_rollout_old_to_candidate_on_snapshot']['finite'] and row['estimator_change']['finite']
++        for row in report['branches'].values())
++    if output_dir is not None:
++        _write_json(output_dir/'result.json', report)
++    return report
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--snapshot', type=Path, required=True, help='真实新训练保存的replay_minibatch.pt')
++    parser.add_argument('--output-dir', type=Path, required=True, help='新建输出目录，拒绝覆盖旧反事实')
++    parser.add_argument('--device', default='cpu', help='默认cpu；cuda:N仅在明确获准使用该卡时给出')
++    parser.add_argument('--cpu-threads', type=int, default=8, help='1..8，避免CPU线程超出当前任务预算')
++    parser.add_argument('--chunk-size', type=int, default=1024, help='前后向分块；仍只有一次Adam，不是多次小batch更新')
++    parser.add_argument('--limit-samples', type=int, help='仅梯度用前K条，KL仍用完整snapshot；显式标为子集实验')
++    args = parser.parse_args()
++    snapshot = torch.load(args.snapshot, map_location='cpu', weights_only=True)
++    report = run_counterfactuals(snapshot, device=args.device, limit_samples=args.limit_samples,
++        chunk_size=args.chunk_size, cpu_threads=args.cpu_threads, output_dir=args.output_dir)
++    report['snapshot_file'] = str(args.snapshot.resolve())
++    report['snapshot_file_sha256'] = hashlib.sha256(args.snapshot.read_bytes()).hexdigest()
++    _write_json(args.output_dir/'result.json', report)
++    return 0
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+--- hipyaw20/estnet/resume.py
++++ klguard/estnet/resume.py
+@@ -40,6 +40,11 @@
+     updates = wrapped.get("updates")
+     if type(updates) is not int or updates < 0 or updates != payload.get("iteration"):
+         raise ValueError("PPO updates must be a non-negative integer equal to checkpoint iteration")
++    # rollout计数不再等于Adam步数：整轮候选均被拒绝时Adam可以仍为空。
++    accepted = wrapped.get("total_accepted_steps")
++    if (type(accepted) is not int or accepted < 0
++            or accepted > updates * ppo.cfg.epochs * ppo.cfg.minibatches):
++        raise ValueError("Guarded checkpoint requires a valid total_accepted_steps")
+     saved = wrapped["optimizer"]
+     groups, states = saved.get("param_groups"), saved.get("state")
+     if not isinstance(groups, list) or not groups or not isinstance(states, dict):
+@@ -74,7 +79,7 @@
+         raise ValueError("Adam parameter identifiers must be unique integers")
+     if not set(states).issubset(parameter_ids):
+         raise ValueError("Adam state contains unknown parameters")
+-    if updates > 0 and set(states) != set(parameter_ids):
++    if accepted > 0 and set(states) != set(parameter_ids):
+         raise ValueError("A trained checkpoint must retain Adam state for every parameter")
+     try:
+         ppo.load_state_dict(wrapped)
+@@ -86,7 +91,7 @@
+         for parameter in group["params"]:
+             state = ppo.optimizer.state.get(parameter)
+             if state is None:
+-                if updates == 0:
++                if accepted == 0:
+                     continue
+                 raise ValueError("Missing trained Adam parameter state")
+             if not isinstance(state, dict):
+@@ -108,8 +113,8 @@
+                     raise ValueError("Adam step must be scalar")
+                 step = step.item()
+             step = _finite_number(step, "Adam step")
+-            if step < 0 or not step.is_integer() or (updates > 0 and step == 0):
+-                raise ValueError("Adam step must be a non-negative integer, positive after training")
++            if step < 0 or not step.is_integer() or step != accepted:
++                raise ValueError("Adam step must equal the number of accepted guarded updates")
+     if len(list(model.parameters())) != sum(len(group["params"]) for group in ppo.optimizer.param_groups):
+         raise ValueError("Adam state does not cover the model parameters")
+ 
+--- hipyaw20/estnet/reward_diagnostics.py
++++ klguard/estnet/reward_diagnostics.py
+@@ -0,0 +1,417 @@
++"""有上限的奖励输入记录器及CPU复算；不改变动作、奖励或仿真状态。
++
++调用顺序为capture_pre -> capture_reward -> capture_post。capture_reward必须在
++奖励previous缓冲更新和环境reset前；capture_post明确属于env.step返回之后，可能含重置状态。
++CLI：python -m estnet.reward_diagnostics {verify,analyze} /path/to/reward-trace
++"""
++from __future__ import annotations
++
++import argparse
++from dataclasses import asdict, is_dataclass
++from datetime import datetime, timezone
++import hashlib
++import json
++import math
++import os
++from pathlib import Path
++from types import SimpleNamespace
++from typing import Any
++import uuid
++
++import numpy as np
++import torch
++
++from .rewards import reward_terms
++
++
++def _sha(path: Path) -> str:
++    """文件内容签名用于确认离线重算仍使用同一个奖励实现。"""
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++
++def _json_value(value: Any) -> Any:
++    """只转换显式提供的元数据，不补造缺失的物理量。"""
++    if isinstance(value, torch.Tensor):
++        return value.detach().cpu().tolist()
++    if isinstance(value, np.ndarray):
++        return value.tolist()
++    if isinstance(value, dict):
++        return {str(key): _json_value(item) for key, item in value.items()}
++    if isinstance(value, (list, tuple)):
++        return [_json_value(item) for item in value]
++    if isinstance(value, Path):
++        return str(value)
++    if isinstance(value, np.generic):
++        return value.item()
++    return value
++
++
++def _save_json(path: Path, value: dict) -> None:
++    """先写临时文件并同步，再原子替换本记录器自己的输出。"""
++    temporary = path.with_name(path.name + ".tmp")
++    with temporary.open("w", encoding="utf-8") as stream:
++        json.dump(_json_value(value), stream, ensure_ascii=False, indent=2, allow_nan=False)
++        stream.write("\n")
++        stream.flush()
++        os.fsync(stream.fileno())
++    temporary.replace(path)
++
++
++class RewardTraceRecorder:
++    """记录前若干环境的有限步数，默认16环境×480步，上限16环境×1000步。
++
++    fields可以是批量Tensor、批量numpy数组、标量或它们的字典。
++    非标量首维必须等于完整环境数；全局关节名称/限位等放static_metadata。
++    每次读取都立即复制所选环境到独立CPU内存，禁止持有可变仿真缓冲的view。
++    """
++
++    def __init__(self, cfg: Any, *, max_steps: int = 480, num_envs: int = 16,
++                 output_dir: str | Path | None = None, static_metadata: dict | None = None,
++                 atol: float = 1e-6, rtol: float = 1e-5,
++                 max_bytes: int = 256 * 1024 * 1024, enabled: bool = True):
++        if type(max_steps) is not int or not 1 <= max_steps <= 1000:
++            raise ValueError("max_steps must be an integer in [1,1000]")
++        if type(num_envs) is not int or not 1 <= num_envs <= 16:
++            raise ValueError("num_envs must be an integer in [1,16]")
++        if type(max_bytes) is not int or max_bytes < 1:
++            raise ValueError("max_bytes must be a positive integer")
++        if any(not math.isfinite(value) or value < 0 for value in (atol, rtol)):
++            raise ValueError("comparison tolerances must be finite and non-negative")
++        config = cfg.to_dict() if hasattr(cfg, "to_dict") else asdict(cfg) if is_dataclass(cfg) else vars(cfg)
++        self.config = _json_value(config)
++        # 固定奖励配置副本，防止调用方后来修改可变配置污染复算。
++        self.cfg = SimpleNamespace(**json.loads(json.dumps(self.config, allow_nan=False)))
++        self.max_steps, self.num_envs = max_steps, num_envs
++        self.max_bytes, self.atol, self.rtol = max_bytes, atol, rtol
++        self.output_dir = Path(output_dir) if output_dir is not None else None
++        self.static_metadata = _json_value(static_metadata or {})
++        self.recorder_id = uuid.uuid4().hex
++        self.created_at = datetime.now(timezone.utc).isoformat()
++        self.frames: list[dict[str, torch.Tensor]] = []
++        self.pending: dict[str, torch.Tensor] | None = None
++        self.full_envs: int | None = None
++        self.selected_envs: int | None = None
++        self.retained_bytes = 0
++        self.stop_reason: str | None = None if enabled else "disabled"
++        self.errors_by_term: dict[str, float] = {}
++        self.verification_failure: dict | None = None
++        self.reward_source_sha256 = _sha(Path(__file__).with_name("rewards.py"))
++
++    @property
++    def steps(self) -> int:
++        """只计完整pre/reward/post三阶段记录，不把残缺帧算成完成。"""
++        return len(self.frames)
++
++    @property
++    def active(self) -> bool:
++        """容量用尽后各捕获函数均返回False，不继续占用训练资源。"""
++        return self.stop_reason is None and self.steps < self.max_steps
++
++    def _flatten(self, prefix: str, value: Any) -> dict[str, torch.Tensor]:
++        """嵌套字典展开成NPZ字段，先选择环境再进行CPU复制。"""
++        if isinstance(value, dict):
++            result = {}
++            for key, item in value.items():
++                if not isinstance(key, str) or "/" in key:
++                    raise ValueError("trace dictionary keys must be strings without '/'")
++                result.update(self._flatten(prefix + "/" + key, item))
++            return result
++        tensor = value if isinstance(value, torch.Tensor) else torch.as_tensor(value)
++        if tensor.ndim:
++            if tensor.shape[0] != self.full_envs:
++                raise ValueError(f"{prefix}: expected batch dimension {self.full_envs}, got {tuple(tensor.shape)}")
++            tensor = tensor[:self.selected_envs]
++        if tensor.is_complex():
++            raise ValueError("Complex diagnostic values are unsupported")
++        tensor = tensor.detach().cpu().clone()
++        if tensor.dtype == torch.bfloat16:
++            tensor = tensor.float()  # numpy不支持bfloat16；float32能精确保存其值。
++        if tensor.is_floating_point() and not torch.isfinite(tensor).all():
++            raise FloatingPointError(f"Non-finite recorded value: {prefix}")
++        return {prefix: tensor}
++
++    def _append_pending(self, values: dict[str, torch.Tensor]) -> bool:
++        """字节容量不足时丢弃未完成帧，保留已完成帧并明确停止原因。"""
++        if self.pending is None:
++            raise RuntimeError("capture_pre must begin a frame")
++        if set(values) & self.pending.keys():
++            raise RuntimeError("A trace stage/field was captured twice")
++        size = sum(value.numel() * value.element_size() for value in self.pending.values())
++        size += sum(value.numel() * value.element_size() for value in values.values())
++        if self.retained_bytes + size > self.max_bytes:
++            self.pending = None
++            self.stop_reason = "byte_cap"
++            return False
++        self.pending.update(values)
++        return True
++
++    def capture_pre(self, observation: dict, action: torch.Tensor,
++                    mean: torch.Tensor, std: torch.Tensor, **fields) -> bool:
++        """在env.step前保存原始采样/均值/标准差及历史，动作不做限幅。"""
++        if not self.active:
++            return False
++        if self.pending is not None:
++            raise RuntimeError("Previous frame has not completed capture_post")
++        if action.ndim != 2 or action.shape != mean.shape or action.shape != std.shape:
++            raise ValueError("action/mean/std must have the same [N,A] shape")
++        if self.full_envs is None:
++            self.full_envs = action.shape[0]
++            if self.full_envs < 1:
++                raise ValueError("An empty environment batch cannot be recorded")
++            self.selected_envs = min(self.num_envs, self.full_envs)
++        elif action.shape[0] != self.full_envs:
++            raise ValueError("Environment count changed within one recorder")
++        if not (std[:self.selected_envs] > 0).all():
++            raise ValueError("Recorded policy std must be positive")
++        self.pending = {}
++        payload = {"observation": observation, "action": action, "mean": mean, "std": std, **fields}
++        return self._append_pending(self._flatten("pre", payload))
++
++    def capture_reward(self, state: dict, terms: dict, **fields) -> bool:
++        """在previous缓存更新和reset前捕获完整state，并用真实奖励逐项核对。"""
++        if not self.active:
++            return False
++        if self.pending is None:
++            raise RuntimeError("capture_reward requires capture_pre")
++        values = self._flatten("reward", {"state": state, "terms": terms, **fields})
++        if not self._append_pending(values):
++            return False
++        cpu_state = {key.removeprefix("reward/state/"): value for key, value in values.items()
++                     if key.startswith("reward/state/")}
++        actual = {key.removeprefix("reward/terms/"): value for key, value in values.items()
++                  if key.startswith("reward/terms/")}
++        expected = reward_terms(cpu_state, self.cfg)
++        if set(actual) != set(expected):
++            raise ValueError("Recorded reward names differ from real reward_terms")
++        failed = []
++        for name, value in expected.items():
++            if value.shape != actual[name].shape or not torch.isfinite(value).all():
++                failed.append(name)
++                continue
++            error = float((value-actual[name]).abs().max())
++            self.errors_by_term[name] = max(self.errors_by_term.get(name, 0.), error)
++            if not torch.allclose(value, actual[name], atol=self.atol, rtol=self.rtol):
++                failed.append(name)
++        if "reward/total_reward" in values:
++            summed = torch.stack(list(expected.values())).sum(0)
++            if not torch.allclose(summed, values["reward/total_reward"], atol=self.atol, rtol=self.rtol):
++                failed.append("total_reward")
++        if failed:
++            self.verification_failure = {"completed_steps_before_failure": self.steps,
++                                         "terms": failed, "max_abs_errors": dict(self.errors_by_term)}
++            raise FloatingPointError("Recorded rewards differ from CPU reward_terms: " + ", ".join(failed))
++        return True
++
++    def capture_post(self, *, terminated: torch.Tensor, truncated: torch.Tensor, **fields) -> bool:
++        """记录step返回后的done/reset信息；该阶段不覆盖已保存的pre-reset奖励状态。"""
++        if not self.active:
++            return False
++        if self.pending is None or not any(key.startswith("reward/state/") for key in self.pending):
++            raise RuntimeError("capture_post requires a captured reward state")
++        values = self._flatten("post", {"terminated": terminated, "truncated": truncated, **fields})
++        if not self._append_pending(values):
++            return False
++        assert self.pending is not None
++        if not torch.equal(self.pending["reward/state/terminated"].bool(), values["post/terminated"].bool()):
++            raise ValueError("Reward terminal mask differs from env.step terminal mask")
++        if self.frames and set(self.frames[0]) != set(self.pending):
++            raise ValueError("Recorded field schema changed between steps")
++        if self.frames and any(self.frames[0][key].shape != value.shape for key, value in self.pending.items()):
++            raise ValueError("Recorded field shapes changed between steps")
++        self.retained_bytes += sum(value.numel()*value.element_size() for value in self.pending.values())
++        self.frames.append(self.pending)
++        self.pending = None
++        if self.steps >= self.max_steps:
++            self.stop_reason = "step_cap"
++        return True
++
++    def arrays(self) -> dict[str, np.ndarray]:
++        """只导出完整帧；stack产生独立数组，调用方不会改写记录器内部数据。"""
++        if not self.frames:
++            return {}
++        return {key: torch.stack([row[key] for row in self.frames]).numpy() for key in self.frames[0]}
++
++    def flush(self, output_dir: str | Path | None = None) -> dict:
++        """可在未满容量时主动落盘；残缺失败帧单独保存，不伪装完整轨迹。"""
++        directory = Path(output_dir) if output_dir is not None else self.output_dir
++        if directory is None:
++            raise ValueError("flush needs output_dir")
++        directory.mkdir(parents=True, exist_ok=True)
++        static_path = directory / "static.json"
++        if static_path.exists():
++            existing = json.loads(static_path.read_text(encoding="utf-8"))
++            if existing.get("recorder_id") != self.recorder_id:
++                raise FileExistsError("Refuse to overwrite another recorder's directory")
++        arrays = self.arrays()
++        temporary = directory / "reward_trace.npz.tmp"
++        with temporary.open("wb") as stream:
++            np.savez_compressed(stream, **arrays)
++            stream.flush()
++            os.fsync(stream.fileno())
++        temporary.replace(directory / "reward_trace.npz")
++        if self.pending is not None:
++            with (directory / "incomplete_frame.npz").open("wb") as stream:
++                np.savez_compressed(stream, **{key: value.numpy() for key, value in self.pending.items()})
++        metadata = {"format_version": 1, "recorder_id": self.recorder_id, "created_at": self.created_at,
++            "config": self.config, "reward_source_sha256": self.reward_source_sha256,
++            "selected_env_ids": list(range(self.selected_envs or 0)), "full_environment_count": self.full_envs,
++            "max_steps": self.max_steps, "max_bytes": self.max_bytes, "atol": self.atol, "rtol": self.rtol,
++            "field_schema": {key: {"shape": list(value.shape), "dtype": str(value.dtype)} for key, value in arrays.items()},
++            "timing": {"pre": "before env.step", "reward": "before previous buffers update and before reset",
++                       "post": "after env.step; may contain reset episode observations"},
++            "static_metadata": self.static_metadata}
++        _save_json(static_path, metadata)
++        summary = {"recorder_id": self.recorder_id, "steps": self.steps, "selected_envs": self.selected_envs,
++            "retained_tensor_bytes": self.retained_bytes, "stop_reason": self.stop_reason,
++            "incomplete_frame_saved": self.pending is not None, "verification_failure": self.verification_failure,
++            "max_abs_errors_by_term": self.errors_by_term, "reward_trace_sha256": _sha(directory / "reward_trace.npz"),
++            "static_sha256": _sha(static_path), "sampling": "bounded first selected environments; not an unbiased population estimate"}
++        _save_json(directory / "summary.json", summary)
++        return summary
++
++
++def _load(directory: str | Path):
++    """校验完整文件与奖励源码；损坏文件或不同奖励版本不能直接被标成复算通过。"""
++    directory = Path(directory)
++    metadata = json.loads((directory / "static.json").read_text(encoding="utf-8"))
++    summary = json.loads((directory / "summary.json").read_text(encoding="utf-8"))
++    if _sha(directory / "reward_trace.npz") != summary["reward_trace_sha256"] or _sha(directory / "static.json") != summary["static_sha256"]:
++        raise ValueError("Trace/static file SHA mismatch")
++    if _sha(Path(__file__).with_name("rewards.py")) != metadata["reward_source_sha256"]:
++        raise ValueError("Offline reward source differs from recorded source")
++    with np.load(directory / "reward_trace.npz", allow_pickle=False) as archive:
++        arrays = {name: archive[name].copy() for name in archive.files}
++    if summary["steps"] < 1:
++        raise ValueError("No complete reward frames available")
++    shape = (summary["steps"], summary["selected_envs"])
++    state = {name.removeprefix("reward/state/"): torch.from_numpy(value).flatten(0, 1)
++             for name, value in arrays.items() if name.startswith("reward/state/")}
++    return arrays, metadata, summary, state, SimpleNamespace(**metadata["config"]), shape
++
++
++def verify_trace(directory: str | Path) -> dict:
++    """离线逐项复算全部完整帧；失败/残缺记录必须保留失败状态。"""
++    arrays, metadata, summary, state, cfg, shape = _load(directory)
++    computed = reward_terms(state, cfg)
++    names = {key.removeprefix("reward/terms/") for key in arrays if key.startswith("reward/terms/")}
++    if names != set(computed):
++        raise ValueError("Saved reward term names do not match source")
++    errors, failed = {}, []
++    for name, expected in computed.items():
++        actual = torch.from_numpy(arrays["reward/terms/" + name]).flatten()
++        if actual.shape != expected.shape or not torch.isfinite(actual).all() or not torch.isfinite(expected).all():
++            failed.append(name)
++            continue
++        errors[name] = float((actual-expected).abs().max())
++        if not torch.allclose(actual, expected, atol=metadata["atol"], rtol=metadata["rtol"]):
++            failed.append(name)
++    if "reward/total_reward" in arrays:
++        total = torch.from_numpy(arrays["reward/total_reward"]).flatten()
++        if not torch.allclose(total, torch.stack(list(computed.values())).sum(0), atol=metadata["atol"], rtol=metadata["rtol"]):
++            failed.append("total_reward")
++    return {"status": "passed" if not failed and summary["verification_failure"] is None and not summary["incomplete_frame_saved"] else "failed",
++            "frames": shape[0], "environment_transitions": shape[0]*shape[1], "failed_terms": failed,
++            "max_abs_errors_by_term": errors, "incomplete_frame_saved": summary["incomplete_frame_saved"],
++            "prior_verification_failure": summary["verification_failure"]}
++
++
++def kernel_inputs(state: dict, cfg: Any) -> dict[str, torch.Tensor]:
++    """明确报告原始核输入；与冻结奖励相同的单位、归约和full3D速度分母。"""
++    vel = state["vel"]
++    desired_v = torch.cat((state["command"][:, :2], torch.zeros_like(vel[:, :1])), -1)
++    desired_w = torch.cat((torch.zeros_like(vel[:, :2]), state["command"][:, 2:3]), -1)
++    speed = vel.norm(dim=-1).clamp_min(cfg.reward_speed_floor)
++    weight = (state["mass"]*9.81).clamp_min(1e-6)
++    return {"linear_velocity": (vel-desired_v).norm(dim=-1), "yaw_velocity": (state["ang_vel"]-desired_w).norm(dim=-1),
++        "upright": 1-state["up"], "height": cfg.reward_target_height-state["height"],
++        "stance_velocity": (state["stance"]*state["foot_vel"].norm(dim=-1)).sum(-1),
++        "swing_force": ((1-state["stance"])*state["foot_force"].norm(dim=-1)).sum(-1)/weight,
++        "impact": (state["foot_force"]-state["prev_foot_force"]).flatten(1).norm(dim=-1)/weight,
++        "torque_smoothness": (state["torque"]-state["prev_torque"]).norm(dim=-1),
++        "joint_velocity_smoothness": (state["joint_vel"]-state["prev_joint_vel"]).norm(dim=-1)/speed,
++        "cost_of_transport": (state["torque"]*state["joint_vel"]).abs().sum(-1)/(weight*speed)}
++
++
++def _statistics(value: np.ndarray) -> dict | None:
++    """空分组返回None；不以零伪装缺失数据。"""
++    value = np.asarray(value, dtype=np.float64).reshape(-1)
++    if not value.size:
++        return None
++    if not np.isfinite(value).all():
++        raise FloatingPointError("Non-finite analysis input")
++    return {"count": int(value.size), "mean": float(value.mean()), "min": float(value.min()),
++            "p10": float(np.quantile(value, .1)), "median": float(np.median(value)),
++            "p90": float(np.quantile(value, .9)), "p99": float(np.quantile(value, .99)), "max": float(value.max())}
++
++
++def analyze_trace(directory: str | Path) -> dict:
++    """按显式相位、实际提供的足高、速度方向分组；不从接触力猜离地高度。"""
++    verified = verify_trace(directory)
++    if verified["status"] != "passed":
++        raise ValueError("Cannot analyze a trace whose rewards failed verification")
++    arrays, metadata, summary, state, cfg, shape = _load(directory)
++    inputs = {name: value.numpy() for name, value in kernel_inputs(state, cfg).items()}
++    terms = {name.removeprefix("reward/terms/"): value.reshape(-1) for name, value in arrays.items()
++             if name.startswith("reward/terms/")}
++
++    def group(mask):
++        mask = np.asarray(mask).reshape(-1)
++        return {"transitions": int(mask.sum()), "kernel_inputs": {name: _statistics(value[mask]) for name, value in inputs.items()},
++                "rewards": {name: _statistics(value[mask]) for name, value in terms.items()}}
++
++    phase = state["stance"].numpy()
++    height = arrays.get("reward/foot_height")
++    if height is not None and height.shape != (*shape, 2):
++        raise ValueError("reward/foot_height must be [T,selected_envs,2]")
++    height = height.reshape(-1, 2) if height is not None else None
++    contact = arrays.get("reward/foot_contact", arrays.get("reward/contact"))
++    if contact is not None and contact.shape != (*shape, 2):
++        raise ValueError("Recorded foot contact must be [T,selected_envs,2]")
++    contact = contact.reshape(-1,2).astype(bool) if contact is not None else None
++    phase_groups, phase_height_groups, phase_contact_groups = {}, {}, {}
++    height_bins = [(-np.inf,0., "below_zero"), (0.,.03,"0_to_0p03m"), (.03,.06,"0p03_to_0p06m"),
++                   (.06,.1,"0p06_to_0p10m"), (.1,np.inf,"at_least_0p10m")]
++    for foot, name in enumerate(("left", "right")):
++        for label, mask in (("stance",phase[:,foot]>=.95), ("swing",phase[:,foot]<=.05),
++                            ("transition",(phase[:,foot]>.05)&(phase[:,foot]<.95))):
++            phase_groups[name+"/"+label] = group(mask)
++            if contact is not None:
++                phase_contact_groups[name+"/"+label+"/contact"] = group(mask&contact[:,foot])
++                phase_contact_groups[name+"/"+label+"/no_contact"] = group(mask&~contact[:,foot])
++            if height is not None:
++                for low, high, bin_name in height_bins:
++                    phase_height_groups[name+"/"+label+"/"+bin_name] = group(mask&(height[:,foot]>=low)&(height[:,foot]<high))
++    velocity = state["vel"].numpy()
++    norm = np.linalg.norm(velocity, axis=-1)
++    orthogonal = np.linalg.norm(velocity[:,1:], axis=-1)
++    forward_dominates = abs(velocity[:,0]) >= orthogonal
++    direction_groups = {"near_rest_3d_below_floor": group(norm<cfg.reward_speed_floor),
++        "forward_dominated": group((norm>=cfg.reward_speed_floor)&forward_dominates&(velocity[:,0]>=0)),
++        "backward_dominated": group((norm>=cfg.reward_speed_floor)&forward_dominates&(velocity[:,0]<0)),
++        "lateral_or_vertical_dominated": group((norm>=cfg.reward_speed_floor)&~forward_dominates)}
++    return {"verification": verified, "global": group(np.ones(shape[0]*shape[1],dtype=bool)),
++        "phase_groups": phase_groups, "phase_height_groups": phase_height_groups, "phase_contact_groups": phase_contact_groups,
++        "speed_direction_groups": direction_groups,
++        "missing_optional_fields": (["reward/foot_height"] if height is None else []) + (["reward/foot_contact"] if contact is None else []),
++        "height_definition": metadata["static_metadata"].get("foot_height_definition", metadata["static_metadata"].get("foot_height_semantics", "Unspecified; height bins are raw supplied coordinates and must not be called sole clearance")),
++        "grouping_semantics": "Phase thresholds >=.95 stance, <=.05 swing; intermediate transition. Each foot conditions the shared two-foot/global reward; groups are not extra reward terms.",
++        "speed_definition": "full3D norm with configured floor; direction dominance compares abs(vx) to norm(vy,vz)",
++        "sampling": summary["sampling"], "not_a_walking_success_test": True}
++
++
++def main() -> int:
++    """CLI只进行CPU文件核验/分析，不初始化Isaac或CUDA。"""
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("mode", choices=("verify", "analyze"))
++    parser.add_argument("directory", type=Path)
++    parser.add_argument("--output", type=Path)
++    args = parser.parse_args()
++    result = verify_trace(args.directory) if args.mode == "verify" else analyze_trace(args.directory)
++    output = args.output or args.directory / ("offline_"+args.mode+".json")
++    _save_json(output, result)
++    print(json.dumps({"output": str(output), "status": result.get("status", result.get("verification",{}).get("status"))}))
++    return 0 if result.get("status", "passed") == "passed" else 2
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+--- hipyaw20/estnet/run.py
++++ klguard/estnet/run.py
+@@ -73,8 +73,10 @@
+         raise ValueError("Checkpoint schema is incompatible with this EstNet baseline")
+     saved_config = payload.get("config")
+     # 即使外层schema被手改，也拒绝用Config默认值给旧模型悄悄加上新动作映射。
+-    if not isinstance(saved_config, dict) or "hip_yaw_target_limit_rad" not in saved_config:
+-        raise ValueError("Checkpoint must explicitly record hip_yaw_target_limit_rad")
++    if not isinstance(saved_config, dict) or not {
++            "hip_yaw_target_limit_rad", "kl_hard_limit", "kl_chunk_size", "gradient_diagnostics"
++        }.issubset(saved_config):
++        raise ValueError("Checkpoint must explicitly record the hip-yaw limit and KL guard configuration")
+     cfg = Config(**saved_config)
+     if cfg.schema != schema:
+         raise ValueError("Checkpoint config schema is incompatible")
+@@ -132,9 +134,24 @@
+     with torch.no_grad():
+         for _ in range(cfg.horizon):
+             action, logp, value, mean, std = model.act(obs)
++            recorder = getattr(env, "reward_recorder", None)
++            if recorder is not None and recorder.active:
++                from .gait import gait
++                phase = env.phase_offset + env.episode_length_buf * cfg.step_dt / cfg.gait_period
++                foot_phase, stance = gait(phase, cfg.gait_duty, cfg.gait_transition)
++                recorder.capture_pre(obs, action, mean, std,
++                    phase_offset=env.phase_offset, episode_length=env.episode_length_buf,
++                    pre_phase=foot_phase, pre_stance=stance)
+             # 先复制动作对应的旧观测，避免环境内部复用缓冲区造成时序错位。
+             row = {k: v.clone() for k, v in obs.items()}
+             next_obs, reward, terminated, truncated, info = env.step(action)
++            if recorder is not None and recorder.active:
++                phase = env.phase_offset + env.episode_length_buf * cfg.step_dt / cfg.gait_period
++                foot_phase, stance = gait(phase, cfg.gait_duty, cfg.gait_transition)
++                recorder.capture_post(terminated=terminated, truncated=truncated,
++                    post_episode_length=env.episode_length_buf,
++                    post_phase=foot_phase, post_stance=stance,
++                    reset_mask=terminated | truncated, next_obs=next_obs["obs"])
+             # DirectRLEnv 会自动重置：next_obs 可能已属于下一回合。
+             # bootstrap 必须读取环境保存的终帧 critic；GAE 会对真实终止清零，
+             # 对时间截断保留 bootstrap，并在两种边界上都切断优势向后递推。
+@@ -349,6 +366,12 @@
+     parser.add_argument("--resume", type=Path, help="仅用于train；恢复模型、Adam、学习率及更新计数")
+     parser.add_argument("--target-height", type=float, default=None,
+                         help="诊断或从零训练的高度目标；省略时使用默认配置；评估必须沿用检查点配置")
++    parser.add_argument("--trace-steps", type=int, default=480,
++                        help="训练只读逐步记录上限，0关闭；最多1000步")
++    parser.add_argument("--trace-envs", type=int, default=16,
++                        help="只记录前若干环境；不改变总仿真环境数")
++    parser.add_argument("--replay-iteration", type=int, default=10,
++                        help="只保存此轮第一个真实minibatch及更新前模型/Adam，0关闭")
+     args = parser.parse_args()
+ 
+     # 能在纯参数阶段拒绝的输入，不应等到初始化GPU或加载USD时才报错。
+@@ -356,6 +379,8 @@
+         parser.error("iterations必须为正整数")
+     if args.cpu_threads < 1:
+         parser.error("cpu-threads必须为正整数")
++    if not 0 <= args.trace_steps <= 1000 or args.trace_envs < 1 or args.replay_iteration < 0:
++        parser.error("trace-steps应为0..1000，trace-envs为正，replay-iteration非负")
+     if args.num_envs is not None and args.num_envs < 1:
+         parser.error("num-envs必须为正整数")
+     if args.render_gpu is not None and args.render_gpu < 0:
+@@ -381,6 +406,7 @@
+     # 所有资源都从空状态开始，初始化中途失败也会进入统一清理路径。
+     env = None
+     app = None
++    recorder = None
+     result = None
+     failure = None
+     failure_text = ""
+@@ -517,6 +543,24 @@
+         env_cfg.detailed_diagnostics = args.mode == "smoke"
+         env = EstNetEnv(env_cfg)
+         obs, _ = env.reset()
++        if args.mode == "train" and args.trace_steps:
++            from .reward_diagnostics import RewardTraceRecorder
++            from .robot import LEG_JOINT_NAMES12
++            cpu = lambda x: x.detach().cpu().tolist()
++            d = env.robot.data
++            ids = slice(0, min(args.trace_envs, env.num_envs))
++            recorder = RewardTraceRecorder(cfg, max_steps=args.trace_steps,
++                num_envs=min(args.trace_envs, env.num_envs), output_dir=run_dir / "reward_trace",
++                static_metadata={"joint_names":list(LEG_JOINT_NAMES12),
++                    "native_joint_names":list(env.robot.joint_names), "leg_ids":cpu(env.leg_ids),
++                    "foot_body_names":[env.robot.body_names[i] for i in env.foot_ids],
++                    "default_q":cpu(d.default_joint_pos[ids][:, env.leg_ids]),
++                    "soft_limits":cpu(d.soft_joint_pos_limits[ids][:, env.leg_ids]),
++                    "env_origins":cpu(env.scene.env_origins[ids]),
++                    "foot_height_semantics":"ankle_roll link origin z relative to flat ground; not sole clearance",
++                    "ground_height_semantics":"flat plane at each environment origin z",
++                    "policy":"raw Gaussian sampling during training; no deterministic evaluation in this trace"})
++            env.reward_recorder = recorder
+         manifest["status"] = "running"
+         write_json(run_dir / "manifest.json", manifest)
+ 
+@@ -547,11 +591,24 @@
+                     print(json.dumps({"event": "training_resumed", **manifest["resume"]},
+                                      ensure_ascii=False), flush=True)
+                     checkpoint = None
+-                with (run_dir / "metrics.jsonl").open("w", encoding="utf-8") as log:
+-                    # 保持既有PPO更新、参数和保存间隔；这里只管理运行与记录。
++                with (run_dir / "metrics.jsonl").open("w", encoding="utf-8") as log, \
++                     (run_dir / "ppo_events.jsonl").open("w", encoding="utf-8") as event_log:
++                    def record_event(event):
++                        event_log.write(json.dumps(event, allow_nan=False) + "\n")
++                        event_log.flush()
++                    def save_replay(snapshot):
++                        path = run_dir / "replay_minibatch.pt"
++                        if path.exists():
++                            raise RuntimeError("Only one bounded replay snapshot may be saved")
++                        temporary = path.with_suffix(".tmp")
++                        torch.save(snapshot, temporary)
++                        temporary.replace(path)
++                    ppo.diagnostic_callback = record_event
++                    # 护栏只改变更新是否被接受；奖励、动作映射和网络结构保持本次基线。
+                     for iteration in range(start_iteration + 1, args.iterations + 1):
+                         started = time.perf_counter()
+                         obs, batch, summary = collect_rollout(env, model, obs, cfg)
++                        ppo.replay_callback = save_replay if iteration == args.replay_iteration else None
+                         summary.update({"ppo/" + key: value for key, value in ppo.update(batch).items()})
+                         if ppo.updates != iteration:
+                             raise RuntimeError("PPO更新计数与训练全局轮次不一致")
+@@ -560,12 +617,17 @@
+                         log.write(json.dumps(summary) + "\n")
+                         log.flush()
+                         print(json.dumps(summary), flush=True)
++                        if recorder is not None and iteration % 5 == 0:
++                            # 有界烟测每5轮持久化一次，避免只依赖native shutdown之前的finally。
++                            manifest["reward_trace"] = recorder.flush()
+                         if iteration % 100 == 0 or iteration == args.iterations:
+                             save_checkpoint(run_dir / f"model_{iteration:05d}.pt", model, ppo, cfg, iteration, asset)
+                 result = {"status": "pilot_finished_requires_evaluation", "iterations": args.iterations,
+                           "start_iteration": start_iteration,
+                           "updates_this_run": args.iterations - start_iteration,
+-                          "walking_verified": False}
++                          "walking_verified": False,
++                          "total_accepted_steps":ppo.total_accepted_steps,
++                          "diagnostic_only":True}
+     except BaseException as exc:
+         # 包括人工中断；操作系统强制杀进程时无法保证Python有机会写最终文件。
+         failure = {"phase": phase, "type": type(exc).__name__, "message": str(exc)}
+@@ -573,10 +635,22 @@
+         exit_code = 130 if isinstance(exc, KeyboardInterrupt) else 2
+     finally:
+         try:
++            if recorder is not None:
++                try:
++                    trace_summary = recorder.flush()
++                    manifest["reward_trace"] = trace_summary
++                except BaseException as exc:
++                    # 诊断落盘失败也必须继续保存主运行事实，不能被native close吞掉。
++                    failure = {"phase":"diagnostic_flush", "type":type(exc).__name__,
++                               "message":str(exc), "earlier_failure":failure}
++                    failure_text += "\n诊断落盘失败：\n" + traceback.format_exc()
++                    exit_code = exit_code or 2
+             # Kit 的 native shutdown 可能直接结束 Python，finally 之后并不保证可达。
+             # 测量先单独持久化，最终记录先标记 cleanup_pending，不提前宣称清理成功。
+             # 若初始化或测量已失败，同样必须在调用 Kit 关闭前写出失败原因。
+             if failure is not None:
++                if result is not None:
++                    write_json(run_dir / "measurement.json", result)
+                 (run_dir / "failure.txt").write_text(failure_text, encoding="utf-8")
+                 write_json(run_dir / "result.json", {"status": "failed", "mode": args.mode,
+                            "failure": failure, "walking_verified": False, "cleanup_status": "pending"})

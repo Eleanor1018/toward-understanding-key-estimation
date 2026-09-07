@@ -1,0 +1,48 @@
+{
+  "checked_at_utc": "2026-09-06T18:15:26.212457+00:00",
+  "status": "cpu_tests_passed",
+  "command": "python -B -m pytest -q -p no:cacheprovider --junitxml=verification.junit.xml tests",
+  "working_directory": "D:\\toward-understanding-key-estimation\\experiments\\estnet_ppo_clip_20260907",
+  "pytest_console_result": "45 passed, 28 subtests passed in 10.72s",
+  "junit_suites": [
+    {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "73",
+      "time": "10.716",
+      "timestamp": "2026-09-07T02:14:08.498543+08:00",
+      "hostname": "DESKTOP-UUL21RL"
+    }
+  ],
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "pytest": "9.1.1",
+  "source_files_verified": 31,
+  "source_manifest_sha256": "57e8b26f0f8f624ddda84739f2af3afbed943270038da4d7f6cf9dc5290e00db",
+  "cli_checks": {
+    "train.py --help": {
+      "return_code": 0,
+      "help_has_chinese": true
+    },
+    "run.py --help": {
+      "return_code": 0,
+      "help_has_chinese": true
+    }
+  },
+  "verified": [
+    "finite high KL still executes all 16 updates with fixed LR",
+    "only named hip yaw receives extra angle cap; knees not soft-target clipped",
+    "real CPU runner saves 2 iterations/32 Adam steps and resumes only 1 more to 3/48",
+    "old schema rejected before simulator initialization",
+    "checkpoint Adam moments/RNG/counters retained",
+    "early cleanup measurement persistence"
+  ],
+  "not_verified": [
+    "Isaac physics on GPU",
+    "actual self-collision contact response",
+    "learning to walk"
+  ],
+  "new_gpu_training_started": false
+}

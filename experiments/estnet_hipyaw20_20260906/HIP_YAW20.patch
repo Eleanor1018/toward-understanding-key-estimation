@@ -1,0 +1,182 @@
+--- selfcollision_source/estnet/config.py
++++ hipyaw20_source/estnet/config.py
+@@ -5,7 +5,8 @@
+ 
+ @dataclass(frozen=True)
+ class Config:
+-    schema: str = "g1-estnet-flat-v1"
++    # 新动作映射使用独立schema，旧未限幅模型不能静默进入本实验。
++    schema: str = "g1-estnet-hipyaw-limited-flat-v1"
+     obs_dim: int = 42
+     command_dim: int = 7
+     critic_dim: int = 61
+@@ -40,6 +41,8 @@
+     command_vx_min: float = 0.25
+     command_vx_max: float = 0.55
+     action_scale: float = 0.25
++    # 工程初值；限制左右hip yaw相对默认姿态的目标偏移，不修改USD机械限位。
++    hip_yaw_target_limit_rad: float = math.radians(20.0)
+     observation_noise: bool = False
+     angular_velocity_scale: float = 0.25
+     joint_velocity_scale: float = 0.05
+@@ -65,6 +68,13 @@
+         return asdict(self)
+ 
+     def validate(self):
++        if self.schema != "g1-estnet-hipyaw-limited-flat-v1":
++            raise ValueError("This experiment requires the hip-yaw-limited EstNet schema")
++        if (isinstance(self.hip_yaw_target_limit_rad, bool)
++                or not isinstance(self.hip_yaw_target_limit_rad, (int, float))
++                or not math.isfinite(self.hip_yaw_target_limit_rad)
++                or not 0.0 < self.hip_yaw_target_limit_rad <= math.pi):
++            raise ValueError("hip_yaw_target_limit_rad must be finite and in (0, pi]")
+         if not math.isfinite(self.reward_target_height) or self.reward_target_height <= 0:
+             raise ValueError("reward_target_height must be finite and positive")
+         if (self.obs_dim, self.command_dim, self.critic_dim, self.action_dim) != (42, 7, 61, 12):
+--- selfcollision_source/estnet/environment.py
++++ hipyaw20_source/estnet/environment.py
+@@ -22,7 +22,7 @@
+                     DEFAULT_JOINT_POS29 as DEFAULT_JOINT_POS, STIFFNESS29 as STIFFNESS,
+                     DAMPING29 as DAMPING, EFFORT_LIMIT29 as EFFORT_LIMIT,
+                     VELOCITY_LIMIT29 as VELOCITY_LIMIT, ARMATURE29 as ARMATURE,
+-                    make_joint_targets)
++                    make_joint_targets, HIP_YAW_POLICY_COLUMNS)
+ 
+ 
+ @configclass
+@@ -89,6 +89,9 @@
+         self.joint_ids = ids
+         self.leg_ids = torch.tensor(self.robot.find_joints(list(LEG_JOINT_NAMES),
+                                    preserve_order=True)[0], device=self.device, dtype=torch.long)
++        # yaw策略列按名称产生，再映射到当前资产的原生关节顺序。
++        self.hip_yaw_policy_columns = list(HIP_YAW_POLICY_COLUMNS)
++        self.hip_yaw_native_ids = self.leg_ids[self.hip_yaw_policy_columns]
+         feet = ["left_ankle_roll_link", "right_ankle_roll_link"]
+         self.foot_ids, foot_names = self.robot.find_bodies(feet, preserve_order=True)
+         if foot_names != feet:
+@@ -110,6 +113,7 @@
+         self.air_time = torch.zeros(n, 2, device=self.device)
+         self.last_landing = torch.full((n,), -1, dtype=torch.long, device=self.device)
+         self.target_clip_fraction = torch.zeros(n, device=self.device)
++        self.hip_yaw_target_clip_fraction = torch.zeros(n, 2, device=self.device)
+ 
+     def _setup_scene(self):
+         self.robot = Articulation(self.cfg.robot)
+@@ -136,13 +140,34 @@
+         raw = actions.clamp(-100., 100.)
+         self.targets = make_joint_targets(raw, self.robot.data.default_joint_pos,
+                                          self.robot.data.soft_joint_pos_limits,
+-                                         self.leg_ids, self.params.action_scale)
++                                         self.leg_ids, self.params.action_scale,
++                                         hip_yaw_target_limit_rad=self.params.hip_yaw_target_limit_rad)
+         requested = self.robot.data.default_joint_pos[:, self.leg_ids] + raw * self.params.action_scale
+         self.target_clip_fraction = (requested != self.targets[:, self.leg_ids]).float().mean(-1)
++        # 原有全局裁剪指标保留；新增两侧yaw请求被最终目标裁剪的比例。
++        self.hip_yaw_target_clip_fraction.copy_(
++            (requested[:, self.hip_yaw_policy_columns]
++             != self.targets[:, self.hip_yaw_native_ids]).float())
+         self.previous_action.copy_(raw)
+ 
+     def _apply_action(self):
+         self.robot.set_joint_position_target(self.targets)
++
++    def _hip_yaw_metrics(self):
++        """记录目标裁剪与实际角度；实际角度可能因动力学越过目标边界，不额外终止回合。"""
++        actual = self.robot.data.joint_pos[:, self.hip_yaw_native_ids]
++        default = self.robot.data.default_joint_pos[:, self.hip_yaw_native_ids]
++        offset = actual - default
++        return {
++            "hip_yaw_target_clip_fraction": self.hip_yaw_target_clip_fraction.mean(-1),
++            "hip_yaw_target_clip_left": self.hip_yaw_target_clip_fraction[:, 0].clone(),
++            "hip_yaw_target_clip_right": self.hip_yaw_target_clip_fraction[:, 1].clone(),
++            "hip_yaw_left_rad": actual[:, 0].clone(),
++            "hip_yaw_right_rad": actual[:, 1].clone(),
++            "hip_yaw_abs_offset_max_rad": offset.abs().amax(-1),
++            "hip_yaw_actual_outside_target_fraction": (
++                offset.abs() > self.params.hip_yaw_target_limit_rad).float().mean(-1),
++        }
+ 
+     def _read_state(self):
+         data = self.robot.data
+@@ -211,6 +236,7 @@
+             "ankle_height_left": self.robot.data.body_pos_w[:, self.foot_ids[0], 2].clone() - self.scene.env_origins[:, 2],
+             "ankle_height_right": self.robot.data.body_pos_w[:, self.foot_ids[1], 2].clone() - self.scene.env_origins[:, 2],
+             "terminated": terminated.float(), "truncated": truncated.float()}
++        self.extras["metrics"].update(self._hip_yaw_metrics())
+         if self.cfg.detailed_diagnostics and terminated.any():
+             failed = terminated.nonzero().flatten()
+             peak = history_force[failed].norm(dim=-1).amax(dim=(0, 1))
+--- selfcollision_source/estnet/robot.py
++++ hipyaw20_source/estnet/robot.py
+@@ -54,6 +54,9 @@
+     "right_wrist_yaw_joint",
+ )
+ LEG_JOINT_NAMES12 = JOINT_NAMES29[:12]
++# 先由名称得到策略列，调用时再经leg_ids映射原生顺序，不能直接把2/8当原生ID。
++HIP_YAW_JOINT_NAMES = ("left_hip_yaw_joint", "right_hip_yaw_joint")
++HIP_YAW_POLICY_COLUMNS = tuple(LEG_JOINT_NAMES12.index(name) for name in HIP_YAW_JOINT_NAMES)
+ 
+ DEFAULT_JOINT_POS29 = (
+     -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,
+@@ -102,6 +105,8 @@
+     soft_limits: torch.Tensor,
+     leg_ids: torch.Tensor,
+     action_scale: float = ACTION_SCALE,
++    *,
++    hip_yaw_target_limit_rad: float,
+ ) -> torch.Tensor:
+     """Map policy-ordered leg actions into native simulator joint targets.
+ 
+@@ -109,6 +114,7 @@
+     ``default_pos`` and ``soft_limits`` already use native simulator order.
+     Upper-body targets remain nominal unless their nominal pose itself violates
+     a soft limit. Inputs are never modified, and every returned target is capped.
++    左右hip yaw另外与默认姿态±配置弧度范围求交；这仅限制PD目标，不限制实际角度。
+     """
+     if raw_actions.ndim != 2 or raw_actions.shape[1] != 12:
+         raise ValueError("raw_actions must have shape [N, 12]")
+@@ -127,6 +133,11 @@
+         raise ValueError("actions, default positions and limits must share a floating dtype")
+     if not math.isfinite(action_scale) or action_scale <= 0.0:
+         raise ValueError("action_scale must be finite and positive")
++    if (isinstance(hip_yaw_target_limit_rad, bool)
++            or not isinstance(hip_yaw_target_limit_rad, (int, float))
++            or not math.isfinite(hip_yaw_target_limit_rad)
++            or not 0.0 < hip_yaw_target_limit_rad <= math.pi):
++        raise ValueError("hip_yaw_target_limit_rad must be finite and in (0, pi]")
+     if torch.any((leg_ids < 0) | (leg_ids >= 29)).item() or leg_ids.unique().numel() != 12:
+         raise ValueError("leg_ids must be distinct native indices in [0, 29)")
+     if torch.any(soft_limits[..., 0] > soft_limits[..., 1]).item():
+@@ -134,4 +145,16 @@
+ 
+     targets = default_pos.clone()
+     targets[:, leg_ids] += raw_actions.clamp(-RAW_ACTION_CLIP, RAW_ACTION_CLIP) * action_scale
+-    return torch.maximum(torch.minimum(targets, soft_limits[..., 1]), soft_limits[..., 0])
++    # 只修改独立目标/边界副本。不能原地改raw_actions：runner在env.step之后才存raw和旧logprob。
++    lower = soft_limits[..., 0].clone()
++    upper = soft_limits[..., 1].clone()
++    yaw_native_ids = leg_ids[list(HIP_YAW_POLICY_COLUMNS)]
++    lower[:, yaw_native_ids] = torch.maximum(
++        lower[:, yaw_native_ids], default_pos[:, yaw_native_ids] - hip_yaw_target_limit_rad
++    )
++    upper[:, yaw_native_ids] = torch.minimum(
++        upper[:, yaw_native_ids], default_pos[:, yaw_native_ids] + hip_yaw_target_limit_rad
++    )
++    if torch.any(lower[:, yaw_native_ids] > upper[:, yaw_native_ids]).item():
++        raise ValueError("Hip-yaw target range has no intersection with simulator soft limits")
++    return torch.maximum(torch.minimum(targets, upper), lower)
+--- selfcollision_source/estnet/run.py
++++ hipyaw20_source/estnet/run.py
+@@ -71,7 +71,11 @@
+     schema = Config().schema
+     if not isinstance(payload, dict) or payload.get("schema") != schema:
+         raise ValueError("Checkpoint schema is incompatible with this EstNet baseline")
+-    cfg = Config(**payload["config"])
++    saved_config = payload.get("config")
++    # 即使外层schema被手改，也拒绝用Config默认值给旧模型悄悄加上新动作映射。
++    if not isinstance(saved_config, dict) or "hip_yaw_target_limit_rad" not in saved_config:
++        raise ValueError("Checkpoint must explicitly record hip_yaw_target_limit_rad")
++    cfg = Config(**saved_config)
+     if cfg.schema != schema:
+         raise ValueError("Checkpoint config schema is incompatible")
+     # 配置中的任意 NaN/Infinity 都会破坏动力学或审计记录，不能只检查高度。

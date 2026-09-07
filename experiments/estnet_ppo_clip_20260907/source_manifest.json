@@ -1,0 +1,166 @@
+{
+  "schema": "estnet-source-release-v1",
+  "created_at_utc": "2026-09-06T18:13:29.764644+00:00",
+  "files": [
+    {
+      "path": "changes_from_guard.json",
+      "sha256": "b789ee83c71391945abeb0eef69b4e786b500e986f7ba3dcc179d9b6081bd0a2",
+      "bytes": 5127
+    },
+    {
+      "path": "estnet/__init__.py",
+      "sha256": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc",
+      "bytes": 74
+    },
+    {
+      "path": "estnet/config.py",
+      "sha256": "4c74460815a919f8377dbf6f4008f74ed24329fd20ddaace85ad080b3f0ef954",
+      "bytes": 5720
+    },
+    {
+      "path": "estnet/environment.py",
+      "sha256": "9c19f72c30e969daf903b2120e135c58fd38eb04da8f44596e8602ebf9079ada",
+      "bytes": 19407
+    },
+    {
+      "path": "estnet/gait.py",
+      "sha256": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+      "bytes": 2907
+    },
+    {
+      "path": "estnet/history.py",
+      "sha256": "f88ed2ed0715b310e5f95cbfa71ff73943b8769083a6f2ff3ddd73e1a7ac6feb",
+      "bytes": 749
+    },
+    {
+      "path": "estnet/networks.py",
+      "sha256": "2f6020f1eda4147de0888671b396d16a346cc8360abfefe5f1d0e88e6dbae3ca",
+      "bytes": 4137
+    },
+    {
+      "path": "estnet/ppo.py",
+      "sha256": "a8016bfad33b94b0c5c37c219e1fd934fc2bfbf26a779bd63ebf728d375404d0",
+      "bytes": 16405
+    },
+    {
+      "path": "estnet/ppo_diagnostics.py",
+      "sha256": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+      "bytes": 8414
+    },
+    {
+      "path": "estnet/preflight.py",
+      "sha256": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+      "bytes": 2218
+    },
+    {
+      "path": "estnet/replay_diagnostics.py",
+      "sha256": "1daa67958bc6386bc68e83120d0d8c7e36494cc26cbca37846d0e7b141f264c1",
+      "bytes": 17143
+    },
+    {
+      "path": "estnet/resume.py",
+      "sha256": "5d03142a5aba59e21ef89ccd3577aa0824edc4c58cd28b2cb70c77de5e7e3ca8",
+      "bytes": 9092
+    },
+    {
+      "path": "estnet/reward_diagnostics.py",
+      "sha256": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63",
+      "bytes": 24492
+    },
+    {
+      "path": "estnet/rewards.py",
+      "sha256": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+      "bytes": 8844
+    },
+    {
+      "path": "estnet/robot.py",
+      "sha256": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+      "bytes": 6523
+    },
+    {
+      "path": "estnet/run.py",
+      "sha256": "be34ad4cc649aa297bc90a541823439f582eff6a55ac6265148e937edb6a29be",
+      "bytes": 42993
+    },
+    {
+      "path": "pytest.ini",
+      "sha256": "38feaf7ff383c6d53bc71a1874809e96f10474c57c9d31f696f6336579bd3052",
+      "bytes": 89
+    },
+    {
+      "path": "README.md",
+      "sha256": "02f405673b85d833e06e9515f032eaef4ef3a692983ed683895ee5e492aefd18",
+      "bytes": 10896
+    },
+    {
+      "path": "references/estnet-open-action-research-20260907.json",
+      "sha256": "067af491ef0cd57296af3aff21ebc9a3d767451864e7cf6a67c1fa350f2bccb0",
+      "bytes": 18877
+    },
+    {
+      "path": "references/estnet-open-action-research-20260907.md",
+      "sha256": "3c1dc631086a16da5b7a466d1ae6b6ab5f1570dfdba28ea1a4ecdb9d670f9111",
+      "bytes": 8600
+    },
+    {
+      "path": "references/estnet-open-ppo-research-20260907.json",
+      "sha256": "8fbaacc0ed08389ce11d5830e000439950d5344453ae18b9fb640aba24593201",
+      "bytes": 25480
+    },
+    {
+      "path": "references/estnet-open-ppo-research-20260907.md",
+      "sha256": "dd52ba9cfe334d2de9fd1dfef80697e4212aeedcace0c723322c6ba08c94c38b",
+      "bytes": 10140
+    },
+    {
+      "path": "run.py",
+      "sha256": "206f08cad20c9bd14b72a99fb503dfc8ff62f0419cc3438ee23e03d9d86bf9d0",
+      "bytes": 167
+    },
+    {
+      "path": "tests/test_action_contract.py",
+      "sha256": "3460ac78a455741a930832a62c0070278d5edd7c2225b87f269d907f1ded1a8c",
+      "bytes": 10580
+    },
+    {
+      "path": "tests/test_collision_readback.py",
+      "sha256": "d6820be210c430a820fde5cd605f5b78163513179ccf3dda9e68158ce882fe74",
+      "bytes": 2074
+    },
+    {
+      "path": "tests/test_resume.py",
+      "sha256": "d655e9c03a59015ac37d56932e6074edd5b32a8e55a09ad2659c26dc5357055a",
+      "bytes": 8063
+    },
+    {
+      "path": "tests/test_runner_lifecycle.py",
+      "sha256": "4c459e3e06c5dcdfd6c5f47371a4a56c9e9b96efdb6e2b5e9976a7036c673b4f",
+      "bytes": 8672
+    },
+    {
+      "path": "tests/test_runner_review.py",
+      "sha256": "a65564ce6523fb982077e6a09e8d9352e9446932bdf88602b525e3acdce20e68",
+      "bytes": 5956
+    },
+    {
+      "path": "tests/test_training_loop.py",
+      "sha256": "96a5c55a26fc514cc89147ea360c832028891145b477d0267a0afbfec792e310",
+      "bytes": 14303
+    },
+    {
+      "path": "tests/test_unrestricted_ppo.py",
+      "sha256": "f2bace154e91c7f4738cd520927fee4cbf08469d3bda7dd92d20ba0840d63732",
+      "bytes": 13860
+    },
+    {
+      "path": "train.py",
+      "sha256": "3c12732d13b57c4251c14f3ac76d2e8969f7a724cf4990345a48627d0e04cce2",
+      "bytes": 684
+    }
+  ],
+  "excludes": [
+    "source_manifest.json itself",
+    "subsequent verification outputs",
+    "Python caches"
+  ]
+}

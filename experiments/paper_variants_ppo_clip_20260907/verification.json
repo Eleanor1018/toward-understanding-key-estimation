@@ -1,0 +1,144 @@
+{
+  "completed_at": "2026-09-07T02:57:49.697992+08:00",
+  "status": "cpu_code_validation_passed",
+  "command": "python -X utf8 -B -m pytest -q tests --junitxml=verification-junit.xml",
+  "cwd": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\paper_variants_ppo_clip_source",
+  "python_executable": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\repo_audit\\venv\\Scripts\\python.exe",
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "tests_passed": 94,
+  "subtests_passed": 238,
+  "junit_total_including_subtests": 332,
+  "failures": 0,
+  "seconds": 22.978,
+  "junit_sha256": "ef5be82d537de71b358daf9e6c627d2a7ab82791af539f6764ba12f4cfb0b88a",
+  "entry_point_checks": [
+    {
+      "script": "train_key1.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "train_key2.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "train_fullest.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "train_irrest.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "train_implicit.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "train.py",
+      "returncode": 0,
+      "chinese_help": true
+    },
+    {
+      "script": "run.py",
+      "returncode": 0,
+      "chinese_help": true
+    }
+  ],
+  "compiled_python_files": 38,
+  "default_model_construction": {
+    "key1": {
+      "schema": "g1-key1-ppo-clip-flat-v1",
+      "supervision_dims": {
+        "velocity": 3
+      },
+      "parameters": 5442534,
+      "actor_input": 68,
+      "critic_input": 152,
+      "decoder_input": 19,
+      "self_collisions": true,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "vae_beta": 50.0
+    },
+    "key2": {
+      "schema": "g1-key2-ppo-clip-flat-v1",
+      "supervision_dims": {
+        "velocity": 3,
+        "heightmap": 18
+      },
+      "parameters": 5481720,
+      "actor_input": 86,
+      "critic_input": 152,
+      "decoder_input": 37,
+      "self_collisions": true,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "vae_beta": 50.0
+    },
+    "fullest": {
+      "schema": "g1-fullest-ppo-clip-flat-v1",
+      "supervision_dims": {
+        "velocity": 3,
+        "heightmap": 18,
+        "body_height": 1
+      },
+      "parameters": 5483897,
+      "actor_input": 87,
+      "critic_input": 152,
+      "decoder_input": 38,
+      "self_collisions": true,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "vae_beta": 50.0
+    },
+    "irrest": {
+      "schema": "g1-irrest-ppo-clip-flat-v1",
+      "supervision_dims": {
+        "body_height": 1
+      },
+      "parameters": 5438180,
+      "actor_input": 66,
+      "critic_input": 152,
+      "decoder_input": 17,
+      "self_collisions": true,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "vae_beta": 50.0
+    },
+    "implicit": {
+      "schema": "g1-implicit-ppo-clip-flat-v1",
+      "supervision_dims": {},
+      "parameters": 5436003,
+      "actor_input": 65,
+      "critic_input": 152,
+      "decoder_input": 16,
+      "self_collisions": true,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "vae_beta": 50.0
+    }
+  },
+  "unchanged_from_estnet_ppo_clip_foundation_sha256": {
+    "robot.py": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+    "gait.py": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+    "rewards.py": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+    "preflight.py": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+    "ppo_diagnostics.py": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+    "reward_diagnostics.py": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63"
+  },
+  "five_variant_gpu_training_started": false,
+  "real_isaac_simulation_tested": false,
+  "walking_verified": false,
+  "scope": "Real CPU model/auxiliary/PPO/collector/checkpoint/runner logic; tiny-network integration with substituted Isaac launcher/physics; production environment methods execute on tensor fixtures. Default full-width models also constructed on CPU.",
+  "initial_regression_adjustment": "Copied baseline replay snapshot assertion updated to the explicit new variant snapshot schema; full suite passed afterward."
+}

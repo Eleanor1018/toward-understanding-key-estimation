@@ -2,17 +2,31 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.venv/
 logs/
-artifacts/
 *.pt
-assets/g1_29dof/*.usd
-assets/g1_29dof/configuration/*.usd
-assets/motions/*.npz
-# Local operational history includes private host aliases and absolute paths.
-docs/DEEPMIMIC_LITE_EXPERIMENT.md
-docs/FULL_REFERENCE_V7_EXPERIMENT.md
-docs/PHASE_RSI_EXPERIMENT.md
-docs/RUN_LOG.md
-docs/WALKING_RECOVERY.md
+assets/**/*.usd
+assets/**/*.npz
 .idea/
 .vscode/
+# Local run receipts, GPU inventories and rollout artifacts are not training source.
+experiments/**/runs/
+artifacts/
+/docs/PRO_RESUME.md
+*.log
+*.jsonl
+events.out.tfevents.*
+# Credentials must stay outside the repository even if copied here accidentally.
+.env
+.env.*
+!.env.example
+id_rsa
+id_ed25519
+*.pem
+*.key
+# Preserve private historical exclusions after moving the old tree.
+archive/**/docs/DEEPMIMIC_LITE_EXPERIMENT.md
+archive/**/docs/FULL_REFERENCE_V7_EXPERIMENT.md
+archive/**/docs/PHASE_RSI_EXPERIMENT.md
+archive/**/docs/RUN_LOG.md
+archive/**/docs/WALKING_RECOVERY.md

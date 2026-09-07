@@ -1,0 +1,142 @@
+{
+  "created_at_utc": "2026-09-06T18:13:29.661119+00:00",
+  "new_schema": "g1-estnet-ppo-clip-flat-v1",
+  "old_schema": "g1-estnet-klguard-flat-v1",
+  "scope": "new baseline; removes both KL update interventions and global soft-target clipping; not a single-variable causal test",
+  "config_changed": {
+    "desired_kl": {
+      "before": 0.01,
+      "after": null
+    },
+    "gradient_diagnostics": {
+      "before": true,
+      "after": false
+    },
+    "kl_hard_limit": {
+      "before": 0.02,
+      "after": null
+    },
+    "learning_rate_schedule": {
+      "before": null,
+      "after": "fixed"
+    },
+    "max_learning_rate": {
+      "before": 0.001,
+      "after": null
+    },
+    "min_learning_rate": {
+      "before": 1e-05,
+      "after": null
+    },
+    "raw_action_clip": {
+      "before": null,
+      "after": 100.0
+    },
+    "schema": {
+      "before": "g1-estnet-klguard-flat-v1",
+      "after": "g1-estnet-ppo-clip-flat-v1"
+    },
+    "self_collisions": {
+      "before": null,
+      "after": true
+    },
+    "soft_joint_target_clipping": {
+      "before": null,
+      "after": false
+    }
+  },
+  "modules": [
+    {
+      "path": "estnet/__init__.py",
+      "sha256": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc",
+      "guard_sha256": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/config.py",
+      "sha256": "4c74460815a919f8377dbf6f4008f74ed24329fd20ddaace85ad080b3f0ef954",
+      "guard_sha256": "67d625ab6efed10c9a3a46183dec0a3e22c0d01eeb577b00db1995a86dc642f2",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/environment.py",
+      "sha256": "9c19f72c30e969daf903b2120e135c58fd38eb04da8f44596e8602ebf9079ada",
+      "guard_sha256": "cac25faf47dfed169df1f61f1b3a3af8eed20c2b1cccb964abae0e70bfedc769",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/gait.py",
+      "sha256": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+      "guard_sha256": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/history.py",
+      "sha256": "f88ed2ed0715b310e5f95cbfa71ff73943b8769083a6f2ff3ddd73e1a7ac6feb",
+      "guard_sha256": "f88ed2ed0715b310e5f95cbfa71ff73943b8769083a6f2ff3ddd73e1a7ac6feb",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/networks.py",
+      "sha256": "2f6020f1eda4147de0888671b396d16a346cc8360abfefe5f1d0e88e6dbae3ca",
+      "guard_sha256": "2f6020f1eda4147de0888671b396d16a346cc8360abfefe5f1d0e88e6dbae3ca",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/ppo.py",
+      "sha256": "a8016bfad33b94b0c5c37c219e1fd934fc2bfbf26a779bd63ebf728d375404d0",
+      "guard_sha256": "5fb58b3b5e6046bcdb3364026436a59491794ea98c80eefd2cb9dd75b4c18673",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/ppo_diagnostics.py",
+      "sha256": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+      "guard_sha256": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/preflight.py",
+      "sha256": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+      "guard_sha256": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/replay_diagnostics.py",
+      "sha256": "1daa67958bc6386bc68e83120d0d8c7e36494cc26cbca37846d0e7b141f264c1",
+      "guard_sha256": "ae60663dcfc8b095386101abe718a6901125f3516dc90c0327637278ea9a6eaa",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/resume.py",
+      "sha256": "5d03142a5aba59e21ef89ccd3577aa0824edc4c58cd28b2cb70c77de5e7e3ca8",
+      "guard_sha256": "e3ad367b02cdf63271d54049df691b4ff5f63050cc15afdd8fe8f1b381628f92",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/reward_diagnostics.py",
+      "sha256": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63",
+      "guard_sha256": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/rewards.py",
+      "sha256": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+      "guard_sha256": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+      "same_as_guard": true
+    },
+    {
+      "path": "estnet/robot.py",
+      "sha256": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+      "guard_sha256": "9e477cc02f36c5831e3af6feeaaf63686f95a95a4a62d944dc44c9c9391fc590",
+      "same_as_guard": false
+    },
+    {
+      "path": "estnet/run.py",
+      "sha256": "be34ad4cc649aa297bc90a541823439f582eff6a55ac6265148e937edb6a29be",
+      "guard_sha256": "1dedbd5b215592f721dfcc8a72e7f860bd80660da1b8399cd0d90ad1a2166424",
+      "same_as_guard": false
+    }
+  ],
+  "reward_module_unchanged": true,
+  "new_gpu_training_started": false
+}

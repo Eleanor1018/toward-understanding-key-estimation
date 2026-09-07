@@ -1,23 +1,13 @@
-# Unitree G1 29-DOF local asset
+# Required local asset
 
-`g1_env.py` expects the no-hand Unitree G1 USD at these local paths:
+Use the Isaac Sim 4.5 no-hand G1 29-DOF asset from the original experiment.
+The four filenames and known hashes are recorded in `estnet/preflight.py`.
+The USD files are not present in this local checkout. Preserve their relative
+`configuration/` paths when copying from your existing installation.
 
-```text
-assets/g1_29dof/g1_29dof_rev_1_0.usd
-assets/g1_29dof/configuration/g1_29dof_rev_1_0_base.usd
-assets/g1_29dof/configuration/g1_29dof_rev_1_0_physics.usd
-assets/g1_29dof/configuration/g1_29dof_rev_1_0_sensor.usd
-```
+The similarly named older IsaacLab `G1_MINIMAL_CFG` uses different joints and
+must not silently substitute for this asset. A hash mismatch needs a deliberate
+asset review and new calibration; it is not bypassed by the training entry point.
 
-The experiment copies these files from the Unitree G1 asset bundled with the
-local Isaac Sim 4.5 installation. They are excluded from this public repository
-until their redistribution terms are confirmed.
-
-Expected SHA-256 values for the tested files:
-
-```text
-cfed730bb043c42708260f25bf3bdf49ac80deed5d5a49384721b8e01059a96e  g1_29dof_rev_1_0.usd
-d9768c942783ae0932f0c3db3558d5283b9a93ba0e561d15d8984f548aa2a65d  configuration/g1_29dof_rev_1_0_base.usd
-cde4ff0378183e4e2063df1fdcad4060df8247eaf1da777f45e2adea0b6dde22  configuration/g1_29dof_rev_1_0_physics.usd
-5115364b53bffbb37007af0fd1038336679b66abdae134bc87d0fca9829f9b60  configuration/g1_29dof_rev_1_0_sensor.usd
-```
+Run `python -m estnet.preflight --asset /absolute/path/g1_29dof_rev_1_0.usd` in
+the Isaac Lab Python environment before `python -m estnet.run smoke`.

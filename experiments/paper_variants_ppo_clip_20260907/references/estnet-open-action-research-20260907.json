@@ -1,0 +1,317 @@
+{
+  "created_at_utc": "2026-09-06T18:04:56.970922+00:00",
+  "method": "GitHub REST API live stars/default-branch SHA; source fetched from commit-pinned raw.githubusercontent.com, read only",
+  "repos": [
+    {
+      "repository": "unitreerobotics/unitree_rl_lab",
+      "observed_at_utc": "2026-09-06T17:56:31.235765+00:00",
+      "stars": 1322,
+      "default_branch": "main",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "commit_date": "2025-11-19T04:08:01Z",
+      "repo_url": "https://github.com/unitreerobotics/unitree_rl_lab",
+      "metadata_url": "https://api.github.com/repos/unitreerobotics/unitree_rl_lab"
+    },
+    {
+      "repository": "unitreerobotics/unitree_rl_gym",
+      "observed_at_utc": "2026-09-06T17:56:31.414026+00:00",
+      "stars": 3528,
+      "default_branch": "main",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b",
+      "commit_date": "2025-07-25T10:20:21Z",
+      "repo_url": "https://github.com/unitreerobotics/unitree_rl_gym",
+      "metadata_url": "https://api.github.com/repos/unitreerobotics/unitree_rl_gym"
+    },
+    {
+      "repository": "roboterax/humanoid-gym",
+      "observed_at_utc": "2026-09-06T17:56:31.712034+00:00",
+      "stars": 2079,
+      "default_branch": "main",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f",
+      "commit_date": "2024-11-01T03:24:05Z",
+      "repo_url": "https://github.com/roboterax/humanoid-gym",
+      "metadata_url": "https://api.github.com/repos/roboterax/humanoid-gym"
+    },
+    {
+      "repository": "isaac-sim/IsaacLab",
+      "observed_at_utc": "2026-09-06T17:57:05.276504+00:00",
+      "stars": 8055,
+      "default_branch": "release/3.0.0-beta2",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "commit_date": "2026-09-04T17:19:22Z",
+      "repo_url": "https://github.com/isaac-sim/IsaacLab",
+      "metadata_url": "https://api.github.com/repos/isaac-sim/IsaacLab"
+    }
+  ],
+  "comparisons": [
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "robot": "G1 29DOF locomotion",
+      "action_scale": 0.25,
+      "raw_clip_explicit_in_task": null,
+      "hip_yaw_target_cap_in_task": null,
+      "self_collision": true,
+      "soft_limit_factor": 0.9,
+      "hip_regularizer": "L1 sum abs(q-q_default), hip roll/yaw, weight -1.0",
+      "joint_limit_regularizer": "actual q outside soft limits, weight -5.0",
+      "direct_all_joint_soft_target_clip": false,
+      "distribution_evidence": "external RSL-RL actor-critic dependency; task itself uses ordinary affine JointPositionAction, not bounded-to-limits action"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "robot": "G1 12DOF",
+      "action_scale": 0.25,
+      "raw_clip": 100.0,
+      "hip_yaw_target_cap_in_task": null,
+      "self_collision": true,
+      "soft_limit_factor": 0.9,
+      "hip_regularizer": "sum of squared q[1,2,7,8], weight -1.0; asset names map to hip roll/yaw",
+      "joint_limit_regularizer": "actual q outside soft limits, weight -5.0",
+      "direct_all_joint_soft_target_clip": false,
+      "torque_clip": true,
+      "distribution_evidence": "external rsl-rl package is not version-pinned in setup.py; do not infer exact installed policy implementation from this repo alone"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "robot": "XBot-L 12DOF, not G1",
+      "action_scale": 0.25,
+      "raw_clip": 18.0,
+      "hip_yaw_target_cap_in_task": null,
+      "self_collision": true,
+      "torque_clip": true,
+      "distribution_evidence": "bundled actor is Normal(mean,std), samples raw Gaussian; inference returns actor mean",
+      "posture_method": "default joint pose reward includes strong roll/yaw return term; explicit analytic reference-joint reward also enabled",
+      "not_drop_in_paper_baseline": true
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "robot": "G1_MINIMAL, different asset from Unitree 29DOF rev1.0",
+      "action_scale": 0.5,
+      "raw_clip_explicit_in_task": null,
+      "hip_yaw_target_cap_in_task": null,
+      "self_collision": false,
+      "soft_limit_factor": 0.9,
+      "hip_regularizer": "L1 sum abs(q-q_default), hip roll/yaw, weight -0.1",
+      "joint_limit_regularizer": "ankle actual q outside soft limits, weight -1.0",
+      "direct_all_joint_soft_target_clip": false,
+      "bounded_mapping_available_but_not_used_by_this_task": true
+    }
+  ],
+  "evidence": {
+    "lab_action": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/g1/29dof/velocity_env_cfg.py#L180-L185",
+    "lab_hip_penalty": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/g1/29dof/velocity_env_cfg.py#L288-L292",
+    "lab_joint_limit_penalty": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/g1/29dof/velocity_env_cfg.py#L253-L260",
+    "lab_self_collision": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py#L24-L47",
+    "lab_nominal_pose": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py#L397-L419",
+    "lab_mimic_scale": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py#L706-L717",
+    "gym_g1_settings": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/g1/g1_config.py#L3-L87",
+    "gym_raw_clip": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/base/legged_robot.py#L49-L63",
+    "gym_clip100": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/base/legged_robot_config.py#L128-L135",
+    "gym_pd_torque_clip": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/base/legged_robot.py#L309-L330",
+    "gym_softlimit_metadata": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/base/legged_robot.py#L251-L266",
+    "gym_softlimit_reward": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/base/legged_robot.py#L678-L682",
+    "gym_hip_reward": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/legged_gym/envs/g1/g1_env.py#L122-L123",
+    "gym_external_policy_dependency": "https://github.com/unitreerobotics/unitree_rl_gym/blob/276801e46c5d433564f24658bac64f254b7d2d4b/setup.py#L5-L11",
+    "humanoid_normal": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/algo/ppo/actor_critic.py#L110-L124",
+    "humanoid_clip18": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/custom/humanoid_config.py#L218-L227",
+    "humanoid_action_scale": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/custom/humanoid_config.py#L118-L128",
+    "humanoid_self_collision": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/custom/humanoid_config.py#L35-L66",
+    "humanoid_reference_reward": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/custom/humanoid_config.py#L188-L216",
+    "humanoid_roll_yaw_posture": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/custom/humanoid_env.py#L362-L372",
+    "humanoid_pd_torque_clip": "https://github.com/roboterax/humanoid-gym/blob/ae46e201c85a2b17e7f2cea59a441dae7ea88a8f/humanoid/envs/base/legged_robot.py#L340-L356",
+    "isaac_g1_hip_limit_rewards": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/rough_env_cfg.py#L54-L65",
+    "isaac_default_scale": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py#L154-L159",
+    "isaac_joint_action_transform": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab/isaaclab/envs/mdp/actions/joint_actions.py#L169-L201",
+    "isaac_per_joint_scale_api": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab/isaaclab/envs/mdp/actions/actions_cfg.py#L29-L61",
+    "isaac_bounded_action_api": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab/isaaclab/envs/mdp/actions/joint_actions_to_limits.py#L152-L173",
+    "isaac_softlimit_l1_definitions": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab/isaaclab/envs/mdp/rewards.py#L180-L207",
+    "isaac_g1_asset": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_assets/isaaclab_assets/robots/unitree.py#L274-L313",
+    "isaac_g1_minimal": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_assets/isaaclab_assets/robots/unitree.py#L382-L384"
+  },
+  "selected_new_baseline": {
+    "classification": "new baseline, not single-variable causal experiment",
+    "source_constraints": "keep self-collision enabled; only hip-yaw target cap among extra joint target caps",
+    "remove": [
+      "custom KL hard-limit rejection/rollback intervention",
+      "extra all-leg soft-joint-position target clamp"
+    ],
+    "preserve": [
+      "existing raw Gaussian/PPO action log-probability contract",
+      "raw action numerical clip +/-100",
+      "uniform action_scale 0.25",
+      "same default pose and PD/asset",
+      "physical joint limits and actuator torque/velocity limits",
+      "existing reward formula; no new hip L1 reward or mimic/reference tracking"
+    ],
+    "hip_yaw_target_limit_rad": 0.3490658503988659,
+    "hip_yaw_target_limit_degrees": 20,
+    "equivalent_raw_action_clip_for_yaw": 1.3962634015954636,
+    "hip_yaw_limit_origin": "user-selected engineering initial value; not an official/paper prescribed number",
+    "action_pipeline": "a=clip(raw,-100,100); q_requested=q_default+0.25*a; q_target=q_requested except left/right hip_yaw clipped to q_default +/- radians(20); other joint targets receive no extra soft-limit clamp",
+    "actual_pose_bound_claim": false,
+    "walking_success_guaranteed": false
+  },
+  "interpretation_limits": [
+    "Stars indicate visibility, not proof of reproducibility or suitability.",
+    "Code configurations are not runtime getter verification.",
+    "No sampled G1 locomotion task explicitly defines a dedicated +/-20 degree hip-yaw cap.",
+    "Moving a hard clip from target space to raw-action space is equivalent when scale and offset are accounted for; it does not bound unsampled latent network outputs.",
+    "A scale alone is not a range bound for a Gaussian.",
+    "Removing KL intervention and all-leg target clipping together cannot isolate either as the cause of walking success/failure.",
+    "Existing measured saturation is behavior evidence, not proof of root cause."
+  ],
+  "source_files": [
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py",
+      "sha256": "5bb4d9b8cabfde167b0f905d0cfa63a2d8a6ab0209077c4885997edbc25c6a62",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py",
+      "sha256": "0f15211f85adc84cf6586770dad448f080d579ea55b4f509aca20a36a11310f7",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/mdp/rewards.py",
+      "sha256": "8a41249e85997414f759c56b990ebd8a9289f7d98c47e2fc70f54180e86d4ad3",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/g1/29dof/__init__.py",
+      "sha256": "dfae4c4e039fee4a82b5c7de0135d7cbabef5c8bdda323bc4e657095d971b588",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/robots/g1/29dof/velocity_env_cfg.py",
+      "sha256": "22deed51bf779bb9730cdbb48df3b098ec64dab15984942153f0073d40840b8f",
+      "commit": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "legged_gym/envs/base/legged_robot.py",
+      "sha256": "255c67339be0c8e98332a632330d62d56c61de4c2e93c43bd30402e9d76eac3d",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "legged_gym/envs/base/legged_robot_config.py",
+      "sha256": "009677a88e2cca66feae457a90679c32fc8676272045a29649a125fb59f2ef56",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "legged_gym/envs/g1/g1_config.py",
+      "sha256": "26eae3cab4141b9f17462eb5150b355643a8466140eb6b8941219e6f28b667b2",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "legged_gym/envs/g1/g1_env.py",
+      "sha256": "7c62c9e1e2222e1446ab4cfb64a471d063998a55c02c0600874451edcc944d82",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "resources/robots/g1_description/g1_12dof.urdf",
+      "sha256": "52a0f729252cba764f610136f0772573e55694024b888da93abd5ad23aba0152",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_gym",
+      "path": "setup.py",
+      "sha256": "6051813d823da4eba1f29c47f3c794282963119bbbcd7e086f5de4ad0a426d02",
+      "commit": "276801e46c5d433564f24658bac64f254b7d2d4b"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "path": "humanoid/algo/ppo/actor_critic.py",
+      "sha256": "48294aeb4178df7331afddd1c51c2cef34fa912b23c8e2f8c99543d76341fc1e",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "path": "humanoid/envs/base/legged_robot.py",
+      "sha256": "d7e4b034d2010554076c3b832e4d48a79053015ebc4b4f600301b1540fbac5c9",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "path": "humanoid/envs/base/legged_robot_config.py",
+      "sha256": "0940123db62961a7df507317e9a6d5b1f99f8a8e630cb6a6e1172707965ce505",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "path": "humanoid/envs/custom/humanoid_config.py",
+      "sha256": "159c592627a409370e25fa3dff19417087a22cfaa388c071f7508057d37dac0f",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f"
+    },
+    {
+      "repo": "roboterax/humanoid-gym",
+      "path": "humanoid/envs/custom/humanoid_env.py",
+      "sha256": "7baa5cf85e172cb1dbac7094040c995495e47b76eec1a15623ad262d1a1c1c93",
+      "commit": "ae46e201c85a2b17e7f2cea59a441dae7ea88a8f"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab/isaaclab/envs/mdp/actions/actions_cfg.py",
+      "sha256": "e4161d768bb6c86f7ae4d0106553381d7ad33f72e13738ae70cd2c6afedb1e3b",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab/isaaclab/envs/mdp/actions/joint_actions.py",
+      "sha256": "a3dd734ca4ca4dd2a8991e4eee221cd01ca460655d3366c07f50007f587d9f05",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab/isaaclab/envs/mdp/actions/joint_actions_to_limits.py",
+      "sha256": "7f2b0b221fe55abeb5a42279ce95010f4d773e4c6dc9928f14839a0de201a0e5",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab/isaaclab/envs/mdp/rewards.py",
+      "sha256": "ee7018bbf28886b785678e97ea4661a187443f58cebac3a90f5fb051c6cf2306",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab/isaaclab/managers/action_manager.py",
+      "sha256": "2facb9eaee7722509603b0794c57bf760f8b6eb7290830d4899b413bbd40109d",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab_assets/isaaclab_assets/robots/unitree.py",
+      "sha256": "a2e14426d635a082cbca8033b1e91cc68637e832dc3d453bc7d3c287a1eb2835",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/flat_env_cfg.py",
+      "sha256": "242d5a22e164fb0088903ecb8dfe453314d07ceb4a6c5d702df731fe80bb12ab",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/rough_env_cfg.py",
+      "sha256": "056f2e932921fae6ba89d95f7834f8fe9b42b389be015deb057cb3d96099fa6c",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "path": "source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py",
+      "sha256": "d66a129f42c64d05bcba3fb5cb3fc7051c4f1441ff9963e52cbd54659ae9464f",
+      "commit": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1"
+    }
+  ],
+  "gpu_jobs_started": false,
+  "existing_projects_modified": false
+}

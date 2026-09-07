@@ -1,0 +1,558 @@
+{
+  "schema": "estnet-primary-open-ppo-research-v1",
+  "generated_at_utc": "2026-09-06T18:08:33.620632+00:00",
+  "repo_stars_are_observed_counts_not_quality_proof": true,
+  "repository_pins": [
+    {
+      "repo": "leggedrobotics/legged_gym",
+      "stars": 3114,
+      "stars_checked_at_utc": "2026-09-06T17:55:39.910490+00:00",
+      "default_branch": "master",
+      "sha": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+      "commit_date": "2025-05-29T08:02:12Z",
+      "commit_url": "https://github.com/leggedrobotics/legged_gym/commit/8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+      "archived": false,
+      "description": "Isaac Gym Environments for Legged Robots"
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "stars": 2953,
+      "stars_checked_at_utc": "2026-09-06T17:55:42.585276+00:00",
+      "default_branch": "main",
+      "sha": "00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+      "commit_date": "2026-08-31T10:29:24Z",
+      "commit_url": "https://github.com/leggedrobotics/rsl_rl/commit/00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+      "archived": false,
+      "description": "A fast and simple implementation of learning algorithms for robotics."
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "stars": 8055,
+      "stars_checked_at_utc": "2026-09-06T17:55:44.937938+00:00",
+      "default_branch": "release/3.0.0-beta2",
+      "sha": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "commit_date": "2026-09-04T17:19:22Z",
+      "commit_url": "https://github.com/isaac-sim/IsaacLab/commit/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "archived": false,
+      "description": "Unified framework for robot learning built on NVIDIA Isaac Sim"
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "stars": 1322,
+      "stars_checked_at_utc": "2026-09-06T17:55:47.295827+00:00",
+      "default_branch": "main",
+      "sha": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "commit_date": "2025-11-19T04:08:01Z",
+      "commit_url": "https://github.com/unitreerobotics/unitree_rl_lab/commit/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "archived": false,
+      "description": "This is a repository for reinforcement learning implementation for Unitree robots, based on IsaacLab."
+    }
+  ],
+  "legacy_version_pins": [
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "tag": "v2.0.2",
+      "sha": "b5fa0eb031a2413c182eeb54fa3a9295e8fd867c",
+      "commit_date": "2025-03-05T23:36:36Z"
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "tag": "v1.0.2",
+      "sha": "2ad79cf0caa85b91721abfe358105f869a784121",
+      "commit_date": "2022-03-14T14:09:43Z"
+    }
+  ],
+  "companion_version_pins": [
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "tag": "v2.1.1",
+      "sha": "8682834e98d7a512bf2728ed144cc293dbacc212",
+      "commit_date": "2025-02-07T22:04:12Z",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-v2.1.1-ppo",
+      "local": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\open_ppo_research\\rsl-v2.1.1-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/8682834e98d7a512bf2728ed144cc293dbacc212/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/8682834e98d7a512bf2728ed144cc293dbacc212/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "8e2e1bad34f08630ea9406f1582807f32cc6c9b9c4d58daa18758e7c057740ae",
+      "lines": 187
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "tag": "v5.0.1",
+      "sha": "3ac56acd3376f2952eb636a133f4b5aa30142552",
+      "commit_date": "2026-03-04T08:15:59Z",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-v5.0.1-ppo",
+      "local": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\open_ppo_research\\rsl-v5.0.1-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/3ac56acd3376f2952eb636a133f4b5aa30142552/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/3ac56acd3376f2952eb636a133f4b5aa30142552/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "a2d35e7ad7b884c80b7434e7d2ce785a6da1e18d93c96f1179fbd3a208669f8c",
+      "lines": 545
+    }
+  ],
+  "numeric_configs_extracted_by_ast_without_importing_training_code": {
+    "legged_gym_task_base": {
+      "policy": {
+        "init_noise_std": 1.0,
+        "actor_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "critic_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "activation": "elu"
+      },
+      "algorithm": {
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": true,
+        "clip_param": 0.2,
+        "entropy_coef": 0.01,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 0.001,
+        "schedule": "adaptive",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0
+      },
+      "runner": {
+        "policy_class_name": "ActorCritic",
+        "algorithm_class_name": "PPO",
+        "num_steps_per_env": 24,
+        "max_iterations": 1500,
+        "save_interval": 50,
+        "experiment_name": "test",
+        "run_name": "",
+        "resume": false,
+        "load_run": -1,
+        "checkpoint": -1,
+        "resume_path": null
+      }
+    },
+    "isaac_lab_v2.0.2_g1_rough": {
+      "num_steps_per_env": 24,
+      "max_iterations": 3000,
+      "save_interval": 50,
+      "experiment_name": "g1_rough",
+      "empirical_normalization": false,
+      "algorithm": {
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": true,
+        "clip_param": 0.2,
+        "entropy_coef": 0.008,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 0.001,
+        "schedule": "adaptive",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0
+      }
+    },
+    "isaac_lab_default_branch_g1_rough": {
+      "num_steps_per_env": 24,
+      "save_interval": 50,
+      "experiment_name": "g1_rough",
+      "algorithm": {
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": true,
+        "clip_param": 0.2,
+        "entropy_coef": 0.008,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 0.001,
+        "schedule": "adaptive",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0
+      }
+    },
+    "unitree_locomotion_base": {
+      "num_steps_per_env": 24,
+      "max_iterations": 50000,
+      "save_interval": 100,
+      "experiment_name": "",
+      "empirical_normalization": false,
+      "algorithm": {
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": true,
+        "clip_param": 0.2,
+        "entropy_coef": 0.01,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 0.001,
+        "schedule": "adaptive",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0
+      }
+    },
+    "rsl_rl_v1.0.2_constructor": {
+      "num_learning_epochs": 1,
+      "num_mini_batches": 1,
+      "clip_param": 0.2,
+      "gamma": 0.998,
+      "lam": 0.95,
+      "value_loss_coef": 1.0,
+      "entropy_coef": 0.0,
+      "learning_rate": 0.001,
+      "max_grad_norm": 1.0,
+      "use_clipped_value_loss": true,
+      "schedule": "fixed",
+      "desired_kl": 0.01,
+      "device": "cpu"
+    },
+    "rsl_rl_v2.1.1_constructor": {
+      "num_learning_epochs": 1,
+      "num_mini_batches": 1,
+      "clip_param": 0.2,
+      "gamma": 0.998,
+      "lam": 0.95,
+      "value_loss_coef": 1.0,
+      "entropy_coef": 0.0,
+      "learning_rate": 0.001,
+      "max_grad_norm": 1.0,
+      "use_clipped_value_loss": true,
+      "schedule": "fixed",
+      "desired_kl": 0.01,
+      "device": "cpu"
+    },
+    "rsl_rl_v5.0.1_constructor": {
+      "num_learning_epochs": 5,
+      "num_mini_batches": 4,
+      "clip_param": 0.2,
+      "gamma": 0.99,
+      "lam": 0.95,
+      "value_loss_coef": 1.0,
+      "entropy_coef": 0.01,
+      "learning_rate": 0.001,
+      "max_grad_norm": 1.0,
+      "optimizer": "adam",
+      "use_clipped_value_loss": true,
+      "schedule": "adaptive",
+      "desired_kl": 0.01,
+      "normalize_advantage_per_mini_batch": false,
+      "device": "cpu",
+      "rnd_cfg": null,
+      "symmetry_cfg": null,
+      "multi_gpu_cfg": null
+    },
+    "rsl_rl_current_v5.5.0_constructor": {
+      "num_learning_epochs": 5,
+      "num_mini_batches": 4,
+      "clip_param": 0.2,
+      "gamma": 0.99,
+      "lam": 0.95,
+      "value_loss_coef": 1.0,
+      "entropy_coef": 0.01,
+      "learning_rate": 0.001,
+      "max_grad_norm": 1.0,
+      "optimizer": "adam",
+      "use_clipped_value_loss": true,
+      "schedule": "adaptive",
+      "desired_kl": 0.01,
+      "normalize_advantage_per_mini_batch": false,
+      "use_mixed_precision": false,
+      "device": "cpu",
+      "rnd_cfg": null,
+      "symmetry_cfg": null,
+      "multi_gpu_cfg": null,
+      "grad_reduce_bucket_mb": 25
+    }
+  },
+  "source_files": [
+    {
+      "repo": "leggedrobotics/legged_gym",
+      "sha": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+      "path": "legged_gym/envs/base/legged_robot_config.py",
+      "label": "legged_gym-config",
+      "local": "work\\open_ppo_research\\legged_gym-config.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/legged_gym/8fa29acc6fd1910c3d9659eef6310bdd301cde0a/legged_gym/envs/base/legged_robot_config.py",
+      "permalink": "https://github.com/leggedrobotics/legged_gym/blob/8fa29acc6fd1910c3d9659eef6310bdd301cde0a/legged_gym/envs/base/legged_robot_config.py",
+      "file_sha256": "65ce2d1b647a291b4ae2bdaed7af569fcdf7a764da6d6b80d47a9ebd3a8a0f4c",
+      "lines": 244
+    },
+    {
+      "repo": "leggedrobotics/legged_gym",
+      "sha": "8fa29acc6fd1910c3d9659eef6310bdd301cde0a",
+      "path": "README.md",
+      "label": "legged_gym-readme",
+      "local": "work\\open_ppo_research\\legged_gym-readme.md",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/legged_gym/8fa29acc6fd1910c3d9659eef6310bdd301cde0a/README.md",
+      "permalink": "https://github.com/leggedrobotics/legged_gym/blob/8fa29acc6fd1910c3d9659eef6310bdd301cde0a/README.md",
+      "file_sha256": "8e2ce1b2d042cfc92f45353995498debcdc33abe24db6a539e080a5ef4024c54",
+      "lines": 105
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "sha": "00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-current-ppo",
+      "local": "work\\open_ppo_research\\rsl-current-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/00e13d1aa49b398ae512f1765297f7ab8c50ca07/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/00e13d1aa49b398ae512f1765297f7ab8c50ca07/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "01a82cea45fa9d8ccb161bd75e07d8623d25450ff92982e9c9d59ca8a9b78393",
+      "lines": 484
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "sha": "00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+      "path": "docs/guide/configuration.rst",
+      "label": "rsl-current-docs",
+      "local": "work\\open_ppo_research\\rsl-current-docs.rst",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/00e13d1aa49b398ae512f1765297f7ab8c50ca07/docs/guide/configuration.rst",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/00e13d1aa49b398ae512f1765297f7ab8c50ca07/docs/guide/configuration.rst",
+      "file_sha256": "470b41b848a015178276b86c29aca535f5567d25a56bd8d63ced95258e9dd2a3",
+      "lines": 727
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "sha": "00e13d1aa49b398ae512f1765297f7ab8c50ca07",
+      "path": "pyproject.toml",
+      "label": "rsl-current-version",
+      "local": "work\\open_ppo_research\\rsl-current-version.toml",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/00e13d1aa49b398ae512f1765297f7ab8c50ca07/pyproject.toml",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/00e13d1aa49b398ae512f1765297f7ab8c50ca07/pyproject.toml",
+      "file_sha256": "2d0c6abc6b3cf717a0488aba2a2ac1d3812925daa1dba544221335a963129cf8",
+      "lines": 60
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "path": "source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "label": "isaac-current-g1",
+      "local": "work\\open_ppo_research\\isaac-current-g1.py",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "file_sha256": "b4defa6f7b5fae205fd784307febc670f7942d9ad795f056062cb5a0657ffa97",
+      "lines": 60
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "path": "source/isaaclab_rl/setup.py",
+      "label": "isaac-current-deps",
+      "local": "work\\open_ppo_research\\isaac-current-deps.py",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_rl/setup.py",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/source/isaaclab_rl/setup.py",
+      "file_sha256": "c48b6448eb66cf6cdccd2d95c503a583dbc129ab4f13bcc09fb18cfc624c4ae7",
+      "lines": 89
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1",
+      "path": "README.md",
+      "label": "isaac-current-readme",
+      "local": "work\\open_ppo_research\\isaac-current-readme.md",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/README.md",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/99f1423e5d4a26216c0eedeb2aa78099a8c3a7d1/README.md",
+      "file_sha256": "9eb71a276aa0aca13eee7190f2cb11c7dc7eccf9d30bb2d135e7e6161960a904",
+      "lines": 159
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "sha": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py",
+      "label": "unitree-locomotion-ppo",
+      "local": "work\\open_ppo_research\\unitree-locomotion-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/unitreerobotics/unitree_rl_lab/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py",
+      "permalink": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/rsl_rl_ppo_cfg.py",
+      "file_sha256": "0f15211f85adc84cf6586770dad448f080d579ea55b4f509aca20a36a11310f7",
+      "lines": 36
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "sha": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "path": "source/unitree_rl_lab/setup.py",
+      "label": "unitree-deps",
+      "local": "work\\open_ppo_research\\unitree-deps.py",
+      "raw_url": "https://raw.githubusercontent.com/unitreerobotics/unitree_rl_lab/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/setup.py",
+      "permalink": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/source/unitree_rl_lab/setup.py",
+      "file_sha256": "b2dfc88bc5f4be68529a0cd64ec56cefe435659781083adce410a3b993e32e22",
+      "lines": 39
+    },
+    {
+      "repo": "unitreerobotics/unitree_rl_lab",
+      "sha": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+      "path": "README.md",
+      "label": "unitree-readme",
+      "local": "work\\open_ppo_research\\unitree-readme.md",
+      "raw_url": "https://raw.githubusercontent.com/unitreerobotics/unitree_rl_lab/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/README.md",
+      "permalink": "https://github.com/unitreerobotics/unitree_rl_lab/blob/4960b84732b0c2ec593dccbfe963fda1bcd7b1e3/README.md",
+      "file_sha256": "87a0ca55d9896c74b6b6fa690a3795c6ebc1635e57d2d50f36d87fcfe7718a32",
+      "lines": 150
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "b5fa0eb031a2413c182eeb54fa3a9295e8fd867c",
+      "path": "source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "label": "isaac-2.0.2-g1",
+      "local": "work\\open_ppo_research\\isaac-2.0.2-g1.py",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "file_sha256": "e80eb6c909d099ef4b5c4eec8fd11a07e1a7688fffc85d4668422def6a1c451b",
+      "lines": 48
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "b5fa0eb031a2413c182eeb54fa3a9295e8fd867c",
+      "path": "source/isaaclab_rl/setup.py",
+      "label": "isaac-2.0.2-deps",
+      "local": "work\\open_ppo_research\\isaac-2.0.2-deps.py",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/source/isaaclab_rl/setup.py",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/source/isaaclab_rl/setup.py",
+      "file_sha256": "9cfbe818c9490e5916e459c074f28571922dcdaeb3e487072e7127c8b8cd2641",
+      "lines": 79
+    },
+    {
+      "repo": "isaac-sim/IsaacLab",
+      "sha": "b5fa0eb031a2413c182eeb54fa3a9295e8fd867c",
+      "path": "README.md",
+      "label": "isaac-2.0.2-readme",
+      "local": "work\\open_ppo_research\\isaac-2.0.2-readme.md",
+      "raw_url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/README.md",
+      "permalink": "https://github.com/isaac-sim/IsaacLab/blob/b5fa0eb031a2413c182eeb54fa3a9295e8fd867c/README.md",
+      "file_sha256": "4635f344ac4aaffcb5e6190806f27381e32d06ead3477f211283b1c7312ba28b",
+      "lines": 100
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "sha": "2ad79cf0caa85b91721abfe358105f869a784121",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-1.0.2-ppo",
+      "local": "work\\open_ppo_research\\rsl-1.0.2-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/2ad79cf0caa85b91721abfe358105f869a784121/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/2ad79cf0caa85b91721abfe358105f869a784121/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "33d531858767e49bbffce8030ac2879a30a00a64caeef0f87502285fa15301cd",
+      "lines": 187
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "tag": "v2.1.1",
+      "sha": "8682834e98d7a512bf2728ed144cc293dbacc212",
+      "commit_date": "2025-02-07T22:04:12Z",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-v2.1.1-ppo",
+      "local": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\open_ppo_research\\rsl-v2.1.1-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/8682834e98d7a512bf2728ed144cc293dbacc212/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/8682834e98d7a512bf2728ed144cc293dbacc212/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "8e2e1bad34f08630ea9406f1582807f32cc6c9b9c4d58daa18758e7c057740ae",
+      "lines": 187
+    },
+    {
+      "repo": "leggedrobotics/rsl_rl",
+      "tag": "v5.0.1",
+      "sha": "3ac56acd3376f2952eb636a133f4b5aa30142552",
+      "commit_date": "2026-03-04T08:15:59Z",
+      "path": "rsl_rl/algorithms/ppo.py",
+      "label": "rsl-v5.0.1-ppo",
+      "local": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\open_ppo_research\\rsl-v5.0.1-ppo.py",
+      "raw_url": "https://raw.githubusercontent.com/leggedrobotics/rsl_rl/3ac56acd3376f2952eb636a133f4b5aa30142552/rsl_rl/algorithms/ppo.py",
+      "permalink": "https://github.com/leggedrobotics/rsl_rl/blob/3ac56acd3376f2952eb636a133f4b5aa30142552/rsl_rl/algorithms/ppo.py",
+      "file_sha256": "a2d35e7ad7b884c80b7434e7d2ce785a6da1e18d93c96f1179fbd3a208669f8c",
+      "lines": 545
+    }
+  ],
+  "semantics": {
+    "ppo_clip": "裁剪的是surrogate objective中的概率比，取min形式；不是动作裁剪、参数硬边界或每个样本ratio的强制上限。",
+    "value_clip": "被审上游默认True：以旧value为中心，对差值用同一clip_param裁剪后，与未裁剪平方误差取较大值；不把最终V输出硬限于该范围。",
+    "adaptive_kl": {
+      "condition": "schedule == adaptive and desired_kl is not None",
+      "above_2x": "lr=max(1e-5,lr/1.5)",
+      "between_0_and_half": "lr=min(1e-2,lr*1.5)",
+      "otherwise": "unchanged",
+      "then": "继续本minibatch正常backward/optimizer.step",
+      "hard_limit": false
+    },
+    "kl_early_stop_or_rollback": "已人工阅读四个版本的PPO.update：v1.0.2、v2.1.1、v5.0.1和当前5.5；这些实现没有基于KL的break、更新拒绝或模型+Adam回滚。此结论仅指列明提交，不泛指所有PPO实现。",
+    "grad_norm": "v1.0.2/v2.1.1对actor_critic合并参数裁剪；v5.0.1/当前5.5分别裁剪actor和critic。数值都为1但作用参数集合不同，不能只看数字声称等价。"
+  },
+  "compatibility": [
+    {
+      "repo": "legged_gym",
+      "detail": "当前README指定Isaac Gym Preview3与rsl_rl v1.0.2；不是Isaac Sim4.5工程。迁移公告说明维护减少。"
+    },
+    {
+      "repo": "IsaacLab v2.0.2",
+      "detail": "官方setup明确torch==2.5.1、Isaac Sim4.5.0，rsl-rl-lib>=2.1.1（不是精确锁定）。本报告另审v2.1.1只是该下界版本，不能据此推断用户实际安装版本。"
+    },
+    {
+      "repo": "IsaacLab current default",
+      "detail": "默认release/3.0.0-beta2对应Sim6.0/6.0.1；setup精确rsl-rl-lib==5.0.1、torch>=2.10；当前rsl main5.5不是它的依赖锁。当前main分支与默认分支不同，不混称。"
+    },
+    {
+      "repo": "Unitree current",
+      "detail": "README标Sim5.1/Lab2.3；URDF途径要求Sim>=5.0，setup classifier却仍标Sim4.5。不能仅凭classifier声称当前全部代码在4.5验证过。只参考PPO配置，不在本实验升级runtime/资产。"
+    }
+  ],
+  "paper_2403_05868v1": {
+    "url": "https://arxiv.org/pdf/2403.05868v1",
+    "location": "PDF第8页Table III",
+    "explicit": {
+      "num_envs": 4096,
+      "epochs": 4,
+      "initial_lr": 0.0005,
+      "gamma": 0.996,
+      "lambda": 0.95,
+      "batches": 4
+    },
+    "not_specified_in_table": [
+      "PPO clip",
+      "value clip",
+      "rollout horizon",
+      "LR schedule",
+      "desired KL",
+      "hard KL limit",
+      "KL rollback",
+      "max grad norm"
+    ]
+  },
+  "recommendation": {
+    "scope": "用户指定的新基线：同时改变KL更新控制与全关节soft-target裁剪，非单变量因果实验，不声称完整复现任一上游或论文",
+    "learning_rate": 0.0005,
+    "schedule": "fixed",
+    "clip_param": 0.2,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.996,
+    "gae_lambda": 0.95,
+    "horizon": 24,
+    "global_num_envs": 4096,
+    "global_rollout_samples": 98304,
+    "minibatch_samples_single_rank": 24576,
+    "optimizer_steps_per_rollout": 16,
+    "max_grad_norm": 1.0,
+    "kl_driven_lr_change": false,
+    "kl_hard_early_stop": false,
+    "kl_update_rejection": false,
+    "kl_model_optimizer_rollback": false,
+    "kl_diagnostics_only": true,
+    "soft_joint_target_clipping": false,
+    "retain": [
+      "自碰撞",
+      "hip yaw物理目标±20°",
+      "raw动作数值裁剪±100与scale.25",
+      "物理关节限位、力矩和速度限位",
+      "原EstNet网络和显式监督",
+      "原奖励和PD",
+      "原物理环境、命令与种子（动作映射另有明示变化）",
+      "原PPO value loss实现",
+      "非有限数检测与失败证据"
+    ],
+    "qualification": "论文仅给initial LR，不证明固定schedule；clip/horizon/gradnorm为现有工程选择。上游常见5epochs/gamma.99/adaptive LR，与本实验不同。"
+  },
+  "limitations": [
+    "只读文献和源码，不代表在用户机器人上跑过这些上游默认。",
+    "星标仅反映当前关注量，不是算法优越性或适配G1的证据。",
+    "同属RSL生态的项目不是四次独立实验证据。",
+    "新增实验不因移除KL限制即可推断会走，须用相同固定mean-policy评估和视频检验。"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "created_at": "2026-09-06T21:01:00.480350+08:00",
+  "host": "4090-7",
+  "gpu": 5,
+  "gpu_uuid": "GPU-a4d3f90e-f5a8-4971-c8f6-355732bedc32",
+  "remote_root": "/data/nora/g1-estnet-hipyaw20-20260906-2054",
+  "initialization": "fresh",
+  "target_iterations": 500,
+  "seed": 42,
+  "num_envs": 4096,
+  "baseline_source_sha256": {
+    "estnet/config.py": "76212ea9702161c987c79bc660307e2b3f756ebcd528aa3ea59e4d6c763da06a",
+    "estnet/environment.py": "a5fd2c9d4e4403b55d2fae637fe6e3a91dbc46c9fae69a099996b9aef011037e",
+    "estnet/gait.py": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+    "estnet/history.py": "f88ed2ed0715b310e5f95cbfa71ff73943b8769083a6f2ff3ddd73e1a7ac6feb",
+    "estnet/networks.py": "2f6020f1eda4147de0888671b396d16a346cc8360abfefe5f1d0e88e6dbae3ca",
+    "estnet/ppo.py": "e5cccfe8d30f75d010ce0e1ab2c8c8c3a16affa1adf1f8d12260eecc55300daf",
+    "estnet/preflight.py": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+    "estnet/resume.py": "fa7c7b15a51e860db0cdc3c2cf66a1b0b38e0d6df5ac5e278f847327273ff491",
+    "estnet/rewards.py": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+    "estnet/robot.py": "b2c481e0cec46438a1890bd1cf9fa1a2de313ae018e6ac68357d0a57d83a9aba",
+    "estnet/run.py": "0e0299ec111f73dad4c2cac963b46d97b05ec3562e8ebd5955497025ea777f24",
+    "estnet/__init__.py": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc"
+  },
+  "experiment_sha256": {
+    "estnet/__init__.py": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc",
+    "estnet/config.py": "65f23b7d4da09e72b5a77bd4c6f63ae9e706c400d4d015001ae7c275e981d175",
+    "estnet/environment.py": "27f3f1372198710e517ebe87b83c53276d72bae0618c71b8804c1294b11f42ab",
+    "estnet/gait.py": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+    "estnet/history.py": "f88ed2ed0715b310e5f95cbfa71ff73943b8769083a6f2ff3ddd73e1a7ac6feb",
+    "estnet/networks.py": "2f6020f1eda4147de0888671b396d16a346cc8360abfefe5f1d0e88e6dbae3ca",
+    "estnet/ppo.py": "e5cccfe8d30f75d010ce0e1ab2c8c8c3a16affa1adf1f8d12260eecc55300daf",
+    "estnet/preflight.py": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+    "estnet/resume.py": "fa7c7b15a51e860db0cdc3c2cf66a1b0b38e0d6df5ac5e278f847327273ff491",
+    "estnet/rewards.py": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+    "estnet/robot.py": "9e477cc02f36c5831e3af6feeaaf63686f95a95a4a62d944dc44c9c9391fc590",
+    "estnet/run.py": "e92349ac03c48ce0dd49c8ab6dec8815b1b085079eed3676be363e8a0b8e3616"
+  },
+  "changed_files": [
+    "estnet/config.py",
+    "estnet/environment.py",
+    "estnet/robot.py",
+    "estnet/run.py"
+  ],
+  "changes": [
+    "retain enabled_self_collisions=True",
+    "hip yaw PD target offset limited to +/-20 degrees, intersected with original soft limits",
+    "explicit action-mapping configuration/checkpoint compatibility and diagnostic metrics"
+  ],
+  "numeric_limit_provenance": "Engineering initial value approved by Nora; author suggested restriction but supplied no angle.",
+  "acceptance_gate": {
+    "provenance": "Engineering evaluation criteria fixed before this training; not the paper success definition",
+    "evaluation_seed": 43,
+    "num_envs": 32,
+    "first_episode_seconds": 10,
+    "required_combined_pass_count": 29,
+    "retain_existing_walking_gates": true,
+    "pose_window_start_seconds": 1,
+    "max_abs_unwrapped_yaw_change_deg": 20,
+    "max_yaw_rate_rmse_rad_s": 0.2,
+    "foot_heading_abs_limit_deg": 30,
+    "required_each_foot_heading_valid_within_fraction": 0.99,
+    "max_crossed_foot_position_fraction": 0,
+    "video_review_required": true
+  },
+  "conditional_next_stage": {
+    "requires": "At least 29/32 pass existing walking and added pose/yaw gates plus video review",
+    "then": "Add explicitly documented paper-inspired terrain curriculum and continue to total iteration 10000",
+    "on_failure": "Do not start terrain or extend this run to 10000"
+  }
+}

@@ -1,0 +1,10 @@
+# Keep ordinary source readable with consistent LF endings on all hosts.
+* text=auto eol=lf
+# Existing frozen snapshots use CRLF; CR is their line ending, not trailing space.
+* whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# A unified diff intentionally contains one-space empty context lines.
+*.patch -whitespace
+# Frozen experiments and historical archives contain byte-level SHA256 manifests.
+# Preserve their exact bytes rather than normalizing files behind the manifests.
+/experiments/** -text
+/archive/** -text

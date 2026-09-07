@@ -1,0 +1,293 @@
+{
+  "package": "paper_variants_ppo_clip_20260907",
+  "created_at": "2026-09-07T02:57:49.802639+08:00",
+  "foundation": "D:\\toward-understanding-key-estimation\\experiments\\estnet_ppo_clip_20260907",
+  "foundation_source_manifest_sha256": "57e8b26f0f8f624ddda84739f2af3afbed943270038da4d7f6cf9dc5290e00db",
+  "variants": [
+    "key1",
+    "key2",
+    "fullest",
+    "irrest",
+    "implicit"
+  ],
+  "publication_directory": "D:\\toward-understanding-key-estimation\\experiments\\paper_variants_ppo_clip_20260907",
+  "files": [
+    {
+      "path": "estnet/__init__.py",
+      "sha256": "9b28d41ddf6e44d73e88441acd7f45feefc638eec905a596315b9c07fb2e71dc",
+      "bytes": 74
+    },
+    {
+      "path": "estnet/ablation_networks.py",
+      "sha256": "03e3507c292167c80d5acdc8bd4ad9ac3a62a1911aae222b66214f5325f9e7ff",
+      "bytes": 5584
+    },
+    {
+      "path": "estnet/ablation_ppo.py",
+      "sha256": "ddec1e2c4c59b2bc19741201c0f0d3f9b5e18c3ff4135f9cfca124540bc049be",
+      "bytes": 1870
+    },
+    {
+      "path": "estnet/config.py",
+      "sha256": "c565909f219cd2e5e13e38ed859e17147b88bb7e4aa24eeccb04597dc286bfec",
+      "bytes": 8443
+    },
+    {
+      "path": "estnet/environment.py",
+      "sha256": "10be5ba5c2ca566114d0880dcf99664ce1f46ff07444ab5ce191a9288b66f663",
+      "bytes": 21624
+    },
+    {
+      "path": "estnet/factory.py",
+      "sha256": "b59f454df3e7048d9a54ac5d408afffc1ed3f1d14e361d0630a8334f3055b2c0",
+      "bytes": 2052
+    },
+    {
+      "path": "estnet/gait.py",
+      "sha256": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+      "bytes": 2907
+    },
+    {
+      "path": "estnet/heightmaps.py",
+      "sha256": "d9246d3dd493f459aafeba03151ba421010a58efad35b41c3a15bd38862cadff",
+      "bytes": 6145
+    },
+    {
+      "path": "estnet/history.py",
+      "sha256": "e938d4cb562aaa7a03b83c969226a0ab5e696853b12e2cf413c28d4fa931146d",
+      "bytes": 1159
+    },
+    {
+      "path": "estnet/key_networks.py",
+      "sha256": "ca161a3c3ee8cb54724ff38ee53eae9daf1de3b58d2f484a325c2e67dd0908ad",
+      "bytes": 5635
+    },
+    {
+      "path": "estnet/key_ppo.py",
+      "sha256": "41e78fc52ecbf73f235cd6d1bc12fc5905c9f9e953fc76295565dc81a7fe8a9f",
+      "bytes": 3111
+    },
+    {
+      "path": "estnet/networks.py",
+      "sha256": "ec7f8085fc4948718c8cba2e21004dbf388b98929d02c6e85a7089f9e839a5e9",
+      "bytes": 4559
+    },
+    {
+      "path": "estnet/ppo.py",
+      "sha256": "2ec507c0beb73a42dfa35b173b8b4901c3febc492b271b0f304f84994c462871",
+      "bytes": 19539
+    },
+    {
+      "path": "estnet/ppo_diagnostics.py",
+      "sha256": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+      "bytes": 8414
+    },
+    {
+      "path": "estnet/preflight.py",
+      "sha256": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+      "bytes": 2218
+    },
+    {
+      "path": "estnet/resume.py",
+      "sha256": "f138a05b0499546f25a7e7fa7effdb5b77e4ff485132a8d5f9de998bfac0dd32",
+      "bytes": 9604
+    },
+    {
+      "path": "estnet/reward_diagnostics.py",
+      "sha256": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63",
+      "bytes": 24492
+    },
+    {
+      "path": "estnet/rewards.py",
+      "sha256": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+      "bytes": 8844
+    },
+    {
+      "path": "estnet/robot.py",
+      "sha256": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+      "bytes": 6523
+    },
+    {
+      "path": "estnet/run.py",
+      "sha256": "038cb46f348e82c3f41311029717e71798679fbb8315abcf5e3f84bedcd1422e",
+      "bytes": 44967
+    },
+    {
+      "path": "protocols/fullest.json",
+      "sha256": "a729b745dffbf742954e72a817c1eff51a4992e5e88c40bef178dd4e0b23464b",
+      "bytes": 2045
+    },
+    {
+      "path": "protocols/implicit.json",
+      "sha256": "32eed5db3d595a1d1fbca698cac8ed6cca79f156d2f60ff1dc481ce139f26924",
+      "bytes": 2047
+    },
+    {
+      "path": "protocols/irrest.json",
+      "sha256": "2daf20cf9f0155c51607c4dee98279b1cb5939b7ed597df352512641f5291353",
+      "bytes": 2043
+    },
+    {
+      "path": "protocols/key1.json",
+      "sha256": "a96549ef674cb799730cba010200f0f379610ede15a72200e70bd9faf14c64dd",
+      "bytes": 2039
+    },
+    {
+      "path": "protocols/key2.json",
+      "sha256": "55692a91b683c6c32d016e96623fab7b02d1865c1564fa38a93297e6664e5c86",
+      "bytes": 2039
+    },
+    {
+      "path": "pytest.ini",
+      "sha256": "e621dabb0551d82e234c399c39d035481d1b20a1ccbeb7a3ade640fc9dd1a151",
+      "bytes": 45
+    },
+    {
+      "path": "README.md",
+      "sha256": "4a79926129e4dbc4f5a738c8dc67df742d8daed948c521976c6a7cd1f1ad44ed",
+      "bytes": 11576
+    },
+    {
+      "path": "references/estnet-foundation-README.md",
+      "sha256": "02f405673b85d833e06e9515f032eaef4ef3a692983ed683895ee5e492aefd18",
+      "bytes": 10896
+    },
+    {
+      "path": "references/estnet-open-action-research-20260907.json",
+      "sha256": "067af491ef0cd57296af3aff21ebc9a3d767451864e7cf6a67c1fa350f2bccb0",
+      "bytes": 18877
+    },
+    {
+      "path": "references/estnet-open-action-research-20260907.md",
+      "sha256": "3c1dc631086a16da5b7a466d1ae6b6ab5f1570dfdba28ea1a4ecdb9d670f9111",
+      "bytes": 8600
+    },
+    {
+      "path": "references/estnet-open-ppo-research-20260907.json",
+      "sha256": "8fbaacc0ed08389ce11d5830e000439950d5344453ae18b9fb640aba24593201",
+      "bytes": 25480
+    },
+    {
+      "path": "references/estnet-open-ppo-research-20260907.md",
+      "sha256": "dd52ba9cfe334d2de9fd1dfef80697e4212aeedcace0c723322c6ba08c94c38b",
+      "bytes": 10140
+    },
+    {
+      "path": "references/paper-variants-definition-audit-20260907.json",
+      "sha256": "d4aaf46dd3503a18303da5d0f1fffe3443270ac6a12c42a2dce821233278746d",
+      "bytes": 10909
+    },
+    {
+      "path": "references/paper-variants-definition-audit-20260907.md",
+      "sha256": "a6785b5ad676808a2fa2ec7baf6f030a9813afee9a68acc63c54a6dff0bec2d9",
+      "bytes": 7638
+    },
+    {
+      "path": "references/paper-variants-source-review-20260907.json",
+      "sha256": "85e9dae618d2d4a38042a810e6b766e594eee40c15cf87cf36027ddcb09f2a38",
+      "bytes": 7917
+    },
+    {
+      "path": "run.py",
+      "sha256": "f17e07cde81cfd6ec638059336761fc6c75468061aa66c89c6ca0d726b131cd5",
+      "bytes": 165
+    },
+    {
+      "path": "tests/__init__.py",
+      "sha256": "014475e50e3ebb8bab7356c9b2ec813d2b487c904f5cdc9a04808de90e7d216d",
+      "bytes": 82
+    },
+    {
+      "path": "tests/test_action_contract.py",
+      "sha256": "d240b390c45b38ff09e50d750914ffcb421a863b51831087cb9744332cf9899f",
+      "bytes": 13203
+    },
+    {
+      "path": "tests/test_collision_readback.py",
+      "sha256": "d6820be210c430a820fde5cd605f5b78163513179ccf3dda9e68158ce882fe74",
+      "bytes": 2074
+    },
+    {
+      "path": "tests/test_heightmaps.py",
+      "sha256": "92d973b94df1daa9c6a178370c3407e34d4fb06734318b6d499a25092549dcbb",
+      "bytes": 7755
+    },
+    {
+      "path": "tests/test_resume.py",
+      "sha256": "d655e9c03a59015ac37d56932e6074edd5b32a8e55a09ad2659c26dc5357055a",
+      "bytes": 8063
+    },
+    {
+      "path": "tests/test_runner_lifecycle.py",
+      "sha256": "4c459e3e06c5dcdfd6c5f47371a4a56c9e9b96efdb6e2b5e9976a7036c673b4f",
+      "bytes": 8672
+    },
+    {
+      "path": "tests/test_unrestricted_ppo.py",
+      "sha256": "271a40cf348992943ea5a3d249d1c25af184ec13fa261adb6e7f2817feb327be",
+      "bytes": 13900
+    },
+    {
+      "path": "tests/test_variant_integration.py",
+      "sha256": "b8d32ce39aa36e913e71ee03b93565034c6aa0c6c6f216cfb1974ec82e308e83",
+      "bytes": 15111
+    },
+    {
+      "path": "tests/test_variant_models.py",
+      "sha256": "4fa4aa088aea04fcf355c0676a35c1c63754d45b9206cc459e67d5313db0ee54",
+      "bytes": 11146
+    },
+    {
+      "path": "tests/test_variant_ppo.py",
+      "sha256": "ed91e0fe74228320bd6b1877b493485c9fcce0abe7506cb0cca347c57a426c25",
+      "bytes": 13351
+    },
+    {
+      "path": "tests/test_variant_runner.py",
+      "sha256": "4f522718bd5f13a08f9c090c744ca654aad304cf32f83a15cdbb945b3d3735d1",
+      "bytes": 16810
+    },
+    {
+      "path": "train.py",
+      "sha256": "9378617966b512ead3d450656ac0c5210c547d13bf6415efc96ff8283ab062b5",
+      "bytes": 187
+    },
+    {
+      "path": "train_fullest.py",
+      "sha256": "68203aa4ee501ed9faf2f4ded4aa430f7f3c79e9ad41ff46cedb88ec57f9d7d3",
+      "bytes": 433
+    },
+    {
+      "path": "train_implicit.py",
+      "sha256": "197173b2334f0e5b8424d5f2cef3514d6aa89ab7b2745f9626f5c031388b9cc0",
+      "bytes": 435
+    },
+    {
+      "path": "train_irrest.py",
+      "sha256": "690727b1b5c4cf273b57a6a264a9517808fb21deec8d616265a10a266459adca",
+      "bytes": 431
+    },
+    {
+      "path": "train_key1.py",
+      "sha256": "9e34d0d1c597834f6b1511f78fad3261cbe2b2f855712a837482764a4aafc33c",
+      "bytes": 427
+    },
+    {
+      "path": "train_key2.py",
+      "sha256": "27a6aabd7886e5f6b2fbcf90998933f3ca7312159e0325b40e8d2a07e87b144a",
+      "bytes": 427
+    },
+    {
+      "path": "verification-junit.xml",
+      "sha256": "ef5be82d537de71b358daf9e6c627d2a7ab82791af539f6764ba12f4cfb0b88a",
+      "bytes": 14189
+    },
+    {
+      "path": "verification.json",
+      "sha256": "0415e018547bfce012ecc5ddb4ce7ab0eb39893346449065be651f402a47b597",
+      "bytes": 4725
+    }
+  ],
+  "file_count": 55,
+  "manifest_self_excluded": true
+}
