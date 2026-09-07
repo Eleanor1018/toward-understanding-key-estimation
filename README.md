@@ -4,14 +4,15 @@
 
 | 当前版本 | 入口与说明 |
 |---|---|
+| Blackwell 六路线：同一运行时，各10000轮 | [Isaac 5.1 六路线](experiments/six_routes_isaac51_20260907/README.md)；`train.py --variant ...`或各自专用入口 |
 | EstNet：只估计速度，无latent/decoder | [EstNet PPO-clip](experiments/estnet_ppo_clip_20260907/README.md)；该目录下`train.py` |
 | Key1、Key2、FullEst、IrrEst、Implicit | [五路线PPO-clip](experiments/paper_variants_ppo_clip_20260907/README.md)；各自`train_*.py`或`train.py --variant ...` |
 | EstNet新版500轮结果 | [评估摘要](docs/ESTNET_PPO_CLIP_500_RESULT.md)；完成训练，但尚未通过行走验证 |
 
-运行时进入对应实验目录，使用Isaac Lab 2.0.2 / Isaac Sim 4.5环境及同版本G1资产。每个目录含独立源码、测试、配置与SHA256清单；不要混用根目录旧包或跨协议检查点。五条新路线默认500轮，代码已完成CPU验证，尚未进行这五条新版路线的GPU训练。
+新的Blackwell六路线目录固定使用Isaac Lab 2.3.2 / Isaac Sim 5.1.0 / Torch 2.7.0+cu128，六组均从零训练到10000轮，保留已有动作、奖励与PPO设置，并显式固定迁移涉及的PhysX选项。此前两个PPO-clip目录继续使用Isaac Lab 2.0.2 / Isaac Sim 4.5、默认500轮。每个目录含独立源码、测试、配置与SHA256清单；使用对应运行环境和G1资产，不要混用根目录旧包或跨协议检查点。公开源码验证记录不等同于GPU训练或行走成功。
 
 ```bash
-cd experiments/paper_variants_ppo_clip_20260907
+cd experiments/six_routes_isaac51_20260907
 python train_key1.py --help
 python -B -m pytest -q tests
 ```

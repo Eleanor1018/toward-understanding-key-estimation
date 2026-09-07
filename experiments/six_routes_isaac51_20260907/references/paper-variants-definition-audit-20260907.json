@@ -1,0 +1,304 @@
+{
+  "schema": "paper-variants-definition-audit-v1",
+  "checked_at_utc": "2026-09-06T18:44:28.365843+00:00",
+  "scope": "只读用户论文v1及D盘旧变体定义；不是五路新版实现完成/训练成功证明",
+  "paper": {
+    "local": "C:/Users/Nora/Downloads/2403.05868v1 (1).pdf",
+    "url": "https://arxiv.org/pdf/2403.05868v1",
+    "references": [
+      "第2页图2与II.A/B",
+      "第4页III.B/C",
+      "第5页III.C",
+      "第8页Table III"
+    ],
+    "figure_2_visually_checked": true
+  },
+  "variants": {
+    "key1": {
+      "paper_name": "Velocity Estimation (Key1)",
+      "explicit_targets": {
+        "velocity": 3
+      },
+      "latent_paper_status": "第5页III.C明确16维",
+      "actor_dim": 68,
+      "decoder_dim": 19,
+      "auxiliary_loss": "1*MSE_velocity + 2*MSE_obs_t + 50*KL_latent",
+      "actor_inputs": [
+        "current_obs42",
+        "command7",
+        "velocity",
+        "latent_mu16"
+      ],
+      "decoder_inputs": [
+        "latent_z16",
+        "velocity"
+      ],
+      "decoder_output": "current_obs42",
+      "current_implementation_latent_dim": 16,
+      "current_implementation_critic_dim": 152,
+      "all_explicit_estimates_enter_actor_and_decoder": true,
+      "velocity_supervision_present": true
+    },
+    "key2": {
+      "paper_name": "Key Estimation (Key2)",
+      "explicit_targets": {
+        "velocity": 3,
+        "heightmap": 18
+      },
+      "latent_paper_status": "共同框架支持隐式编码；该条目未单独重写16维，当前沿用16是明示推断",
+      "actor_dim": 86,
+      "decoder_dim": 37,
+      "auxiliary_loss": "1*MSE_velocity + .5*MSE_footmap + 2*MSE_obs_t + 50*KL_latent",
+      "actor_inputs": [
+        "current_obs42",
+        "command7",
+        "velocity",
+        "heightmap",
+        "latent_mu16"
+      ],
+      "decoder_inputs": [
+        "latent_z16",
+        "velocity",
+        "heightmap"
+      ],
+      "decoder_output": "current_obs42",
+      "current_implementation_latent_dim": 16,
+      "current_implementation_critic_dim": 152,
+      "all_explicit_estimates_enter_actor_and_decoder": true,
+      "velocity_supervision_present": true
+    },
+    "fullest": {
+      "paper_name": "Full Estimation (FullEst)",
+      "explicit_targets": {
+        "velocity": 3,
+        "heightmap": 18,
+        "body_height": 1
+      },
+      "latent_paper_status": "第4页III.B明确固定宽度implicit information，第5页结构同saliency组；其宽度未单独公布，当前选择16",
+      "actor_dim": 87,
+      "decoder_dim": 38,
+      "auxiliary_loss": "1*MSE_velocity + .5*MSE_footmap + 2*MSE_bodyheight + 2*MSE_obs_t + 50*KL_latent",
+      "actor_inputs": [
+        "current_obs42",
+        "command7",
+        "velocity",
+        "heightmap",
+        "body_height",
+        "latent_mu16"
+      ],
+      "decoder_inputs": [
+        "latent_z16",
+        "velocity",
+        "heightmap",
+        "body_height"
+      ],
+      "decoder_output": "current_obs42",
+      "current_implementation_latent_dim": 16,
+      "current_implementation_critic_dim": 152,
+      "all_explicit_estimates_enter_actor_and_decoder": true,
+      "velocity_supervision_present": true
+    },
+    "irrest": {
+      "paper_name": "Irrelevant Estimation (IrrEst)",
+      "explicit_targets": {
+        "body_height": 1
+      },
+      "latent_paper_status": "第5页III.C明确16维",
+      "actor_dim": 66,
+      "decoder_dim": 17,
+      "auxiliary_loss": "2*MSE_bodyheight + 2*MSE_obs_t + 50*KL_latent",
+      "actor_inputs": [
+        "current_obs42",
+        "command7",
+        "body_height",
+        "latent_mu16"
+      ],
+      "decoder_inputs": [
+        "latent_z16",
+        "body_height"
+      ],
+      "decoder_output": "current_obs42",
+      "current_implementation_latent_dim": 16,
+      "current_implementation_critic_dim": 152,
+      "all_explicit_estimates_enter_actor_and_decoder": true,
+      "velocity_supervision_present": false
+    },
+    "implicit": {
+      "paper_name": "Implicit Encoding (Implicit)",
+      "explicit_targets": {},
+      "latent_paper_status": "第5页III.C明确仅16维latent，无显式估计",
+      "actor_dim": 65,
+      "decoder_dim": 16,
+      "auxiliary_loss": "2*MSE_obs_t + 50*KL_latent",
+      "actor_inputs": [
+        "current_obs42",
+        "command7",
+        "latent_mu16"
+      ],
+      "decoder_inputs": [
+        "latent_z16"
+      ],
+      "decoder_output": "current_obs42",
+      "current_implementation_latent_dim": 16,
+      "current_implementation_critic_dim": 152,
+      "all_explicit_estimates_enter_actor_and_decoder": true,
+      "velocity_supervision_present": false
+    }
+  },
+  "reviewed_code_files": {
+    "config.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\config.py",
+      "sha256": "57c09f138fe7dbc16a3cfba12e90107d6d474d434509b4b0275346de3133e3aa",
+      "lines": 116
+    },
+    "key_networks.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\key_networks.py",
+      "sha256": "a56acc1ece5f6bb1de82b2375d328b1b44dbfaf58180a8e6394125391b97d0eb",
+      "lines": 103
+    },
+    "ablation_networks.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\ablation_networks.py",
+      "sha256": "bb1750a0b16e7ae5e41a84da995428f96b66dd8e94ffd8f97b4a7a1a365e67ff",
+      "lines": 104
+    },
+    "key_ppo.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\key_ppo.py",
+      "sha256": "4668b247605353996c99baa505c2a6018c49a052ca4397e1ec536a944d01cb73",
+      "lines": 44
+    },
+    "ablation_ppo.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\ablation_ppo.py",
+      "sha256": "b8c4a84fa21b95e82acb1ad5ef2c0521689c714f13fafbebaa7dbfd2783af61a",
+      "lines": 43
+    },
+    "environment.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\environment.py",
+      "sha256": "6866f5a119746d215e5d53cd5b09026526a683a626d4d196e347b6bb7f09f559",
+      "lines": 293
+    },
+    "history.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\history.py",
+      "sha256": "e938d4cb562aaa7a03b83c969226a0ab5e696853b12e2cf413c28d4fa931146d",
+      "lines": 24
+    },
+    "run.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\run.py",
+      "sha256": "c2bfdb0eb5b95169a92ac989d3862350f9ff4fcc2549bf87a56a1245720ca28f",
+      "lines": 968
+    },
+    "ppo.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\ppo.py",
+      "sha256": "be557856115eb12db32867c086f3a85b736947f749e055a64e88fadeab778e0a",
+      "lines": 224
+    },
+    "heightmaps.py": {
+      "path": "D:\\toward-understanding-key-estimation\\estnet\\heightmaps.py",
+      "sha256": "d9246d3dd493f459aafeba03151ba421010a58efad35b41c3a15bd38862cadff",
+      "lines": 139
+    }
+  },
+  "critical_findings": [
+    {
+      "finding": "Key1不存在高度图估计头或heightmap loss，也不向actor/decoder传map估计。",
+      "evidence": [
+        "paper第5页III.C Key1",
+        "key_networks.py:49-57,77-80",
+        "key_ppo.py:19-20,38-45"
+      ],
+      "misleading_legacy_interface": "config.py supervision_dims为key1附带heightmap真值；该标签未被Key1 PPO选为required，属于未用的旧接口字段，不能据此创建maphead。"
+    },
+    {
+      "finding": "IrrEst只有body_height1显式监督；Implicit无显式监督。两者没有velocity头或velocity RMSE。",
+      "evidence": [
+        "paper第5页III.C",
+        "ablation_networks.py:50-61,85-88",
+        "ablation_ppo.py:19-22,36-44"
+      ]
+    },
+    {
+      "finding": "VAE latent KL beta50必须与PPO policy KL分开；取消PPO KL干预不表示删除VAE正则。",
+      "evidence": [
+        "paper第8页Table III",
+        "key_ppo.py:29-35",
+        "ablation_ppo.py:29-35"
+      ]
+    }
+  ],
+  "timing": {
+    "paper_history": "图2 o_(t-1:t-h)，0.5s历史",
+    "paper_conflict": "decoder图中输出hat_o_(t+1)，图注却写current且重建虚线连o_t",
+    "current_and_selected_new_convention": "非EstNet五组：过去50帧不含当前 -> 重建当前obs_t；不是next_obs_t+1",
+    "supervision_time": "当前状态velocity、footmap、body_height，与row.obs/history一起在env.step前clone",
+    "reset_history": "新episode首帧重复填充缺失历史；不保留旧episode历史",
+    "critic_bootstrap": "final_critic在reset前存储供GAE，和VAE重建target是不同用途",
+    "evidence": [
+      "environment.py:251-267",
+      "history.py:14-26",
+      "run.py:349-370",
+      "key_ppo.py:28",
+      "ablation_ppo.py:29"
+    ]
+  },
+  "paper_explicit_hyperparameters": {
+    "velocity_coef": 1,
+    "heightmap_coef": 0.5,
+    "body_height_coef": 2,
+    "prediction_coef": 2,
+    "vae_beta": 50,
+    "backbone_hidden": [
+      2048,
+      512,
+      128
+    ],
+    "encoder_hidden": [
+      1024,
+      256,
+      64
+    ],
+    "activation": "ELU"
+  },
+  "engineering_completions": {
+    "footmap_dim": 18,
+    "base_map_dim": 81,
+    "heightmap_sampling": "feet3x3/foot x±.1,y±.05; base9x9 spacing.1 x/y±.4; base-yaw rotated; vertical origin-to-ground distance, meters",
+    "decoder_hidden": [
+      64,
+      256,
+      1024
+    ],
+    "critic_hidden": [
+      2048,
+      512,
+      128
+    ],
+    "actor_latent": "deterministic mu both training/evaluation",
+    "decoder_latent": "reparameterized sample in train, mu in eval",
+    "logvar_clip": [
+      -10,
+      10
+    ],
+    "gaussian_prior": "standard normal for VAE KL",
+    "mse_reduction": "mean over batch and features",
+    "kl_reduction": "0.5*mean(mu^2+exp(logvar)-1-logvar) over batch and latent",
+    "loss_composition": "prediction_coef*MSE + vae_beta*KL separately, not prediction_coef*(MSE+vae_beta*KL)",
+    "detach": "none on estimates/mu/sample path; PPO and auxiliary gradients share encoder",
+    "paper_does_not_fully_specify_these_choices": true
+  },
+  "comparison_limits": {
+    "five_variant_critic": "obs42+command7+privileged103=152; privilege=velocity3+baseheight1+footmap18+basemap81",
+    "estnet_critic": 61,
+    "five_variant_history": "past50 excluding current",
+    "estnet_history": "50 frames including current",
+    "strict_head_only_ablation": false,
+    "explanation": "共享新PPO/PD/奖励并不消除critic/history差异；本轮不改正在运行EstNet500。"
+  },
+  "new_training_foundation_requested": {
+    "self_collisions": true,
+    "hip_yaw_target_cap_deg": 20,
+    "other_soft_joint_target_clip": false,
+    "policy_kl_controls_updates": false,
+    "fixed_learning_rate": 0.0005,
+    "retain_vae_latent_kl_beta": 50,
+    "training_launch_performed_by_this_audit": false
+  }
+}

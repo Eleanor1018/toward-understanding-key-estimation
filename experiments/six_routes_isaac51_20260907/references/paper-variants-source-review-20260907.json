@@ -1,0 +1,138 @@
+{
+  "schema": "paper-variants-source-integration-review-v1",
+  "reviewed_at": "2026-09-07T02:56:09.814277+08:00",
+  "source_directory": "C:\\Users\\Nora\\Documents\\Codex\\2026-09-06\\xiao\\work\\paper_variants_ppo_clip_source",
+  "review_mode": "Read-only static integration review and bounded AST/byte comparison; no source edits or GPU execution",
+  "review_independence": "Reviewer independently examined root-owned runner/environment/resume integration. Reviewer previously authored this bundle config/factory/model files; this is not an independent second model audit.",
+  "conclusion": "No blocking startup or learning-interface defect found in the reviewed current paths.",
+  "blocking_findings": [],
+  "checked_file_sha256": {
+    "environment.py": "10be5ba5c2ca566114d0880dcf99664ce1f46ff07444ab5ce191a9288b66f663",
+    "run.py": "038cb46f348e82c3f41311029717e71798679fbb8315abcf5e3f84bedcd1422e",
+    "resume.py": "f138a05b0499546f25a7e7fa7effdb5b77e4ff485132a8d5f9de998bfac0dd32",
+    "history.py": "e938d4cb562aaa7a03b83c969226a0ab5e696853b12e2cf413c28d4fa931146d",
+    "heightmaps.py": "d9246d3dd493f459aafeba03151ba421010a58efad35b41c3a15bd38862cadff",
+    "robot.py": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+    "config.py": "c565909f219cd2e5e13e38ed859e17147b88bb7e4aa24eeccb04597dc286bfec",
+    "factory.py": "b59f454df3e7048d9a54ac5d408afffc1ed3f1d14e361d0630a8334f3055b2c0",
+    "ppo.py": "2ec507c0beb73a42dfa35b173b8b4901c3febc492b271b0f304f84994c462871",
+    "key_ppo.py": "41e78fc52ecbf73f235cd6d1bc12fc5905c9f9e953fc76295565dc81a7fe8a9f",
+    "ablation_ppo.py": "ddec1e2c4c59b2bc19741201c0f0d3f9b5e18c3ff4135f9cfca124540bc049be",
+    "ppo_diagnostics.py": "00d46e0644f3d17208dcaa20e14689fa23b247500f95ca07bc3df838d0eb87c8",
+    "reward_diagnostics.py": "acce71aa03503cb3913590350c2962eef2fc870fe392286ae2a4d4d447b00b63"
+  },
+  "readme_sha256": "4a79926129e4dbc4f5a738c8dc67df742d8daed948c521976c6a7cd1f1ad44ed",
+  "physical_foundation_comparison": {
+    "baseline_directory": "D:\\toward-understanding-key-estimation\\experiments\\estnet_ppo_clip_20260907\\estnet",
+    "byte_identical_files": [
+      {
+        "file": "robot.py",
+        "sha256": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+        "identical": true
+      },
+      {
+        "file": "rewards.py",
+        "sha256": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+        "identical": true
+      },
+      {
+        "file": "gait.py",
+        "sha256": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+        "identical": true
+      },
+      {
+        "file": "preflight.py",
+        "sha256": "4620b22cfd4ad604acf3faae8a26ae22ce9097b14ded57a21602e01b2f1d29ef",
+        "identical": true
+      }
+    ],
+    "environment_ast_identical_methods": [
+      "__init__",
+      "_setup_scene",
+      "_pre_physics_step",
+      "_apply_action",
+      "_hip_yaw_metrics",
+      "_get_dones",
+      "_get_rewards",
+      "_reset_idx"
+    ],
+    "environment_changed_methods": [
+      "build_env_cfg",
+      "_read_state",
+      "_get_observations"
+    ],
+    "meaning": "Actual action target mapping, native-order PD setup, self-collision selection, physics/reset/done/reward methods are unchanged. Changes only construct variant observation spaces, privileged critic/maps and selected supervision/history interfaces."
+  },
+  "confirmed_contracts": [
+    {
+      "name": "Dynamic spaces and explicit supervision",
+      "references": [
+        "estnet/environment.py:59",
+        "estnet/environment.py:194",
+        "estnet/environment.py:306",
+        "estnet/config.py:92"
+      ],
+      "evidence": "EstNet critic61; all five VAE critic152. Key1 velocity3; Key2 velocity3+heightmap18; FullEst adds body_height1; IrrEst only body_height1; Implicit no explicit labels. Body height uses [N,1]. No dummy velocity labels added."
+    },
+    {
+      "name": "Temporal alignment and timeout bootstrap",
+      "references": [
+        "estnet/history.py:13",
+        "estnet/environment.py:219",
+        "estnet/environment.py:306",
+        "estnet/environment.py:323",
+        "estnet/run.py:130",
+        "estnet/ppo.py:21"
+      ],
+      "evidence": "VAE history copies the old history before appending current obs; reset fills unavailable history with the initial frame. Collector clones current observation/history/labels before env.step; final critic is cloned before automatic reset; GAE bootstraps timeout and cuts trace at either boundary. EstNet deliberately retains current-inclusive history."
+    },
+    {
+      "name": "Factory and full-state resume dispatch",
+      "references": [
+        "estnet/factory.py:28",
+        "estnet/run.py:414",
+        "estnet/run.py:485",
+        "estnet/run.py:623",
+        "estnet/resume.py:123",
+        "estnet/resume.py:138"
+      ],
+      "evidence": "Dedicated entry points bind canonical variant; fresh/evaluate/resume choose config before GPU/AppLauncher. Loader strictly checks schema/config/asset/model and variant factory. Training restores complete Adam, fixed LR, updates and applicable RNG; starts new episodes. Complete PPO iteration equals epochs*minibatches Adam steps."
+    },
+    {
+      "name": "No hidden velocity assumption in optional diagnostics",
+      "references": [
+        "estnet/ppo.py:151",
+        "estnet/reward_diagnostics.py:147",
+        "estnet/key_ppo.py",
+        "estnet/ablation_ppo.py"
+      ],
+      "evidence": "Gradient diagnostics relabel weighted combined auxiliary objective rather than presenting it as velocity-only. Reward recorder traverses actual observation/state dictionary. IrrEst/Implicit have no fake velocity RMSE. Generic snapshot protocol is variant-fixed-lr-first-minibatch-replay-v1; legacy velocity-only replay analyzer is absent."
+    },
+    {
+      "name": "README agreement",
+      "references": [
+        "README.md"
+      ],
+      "evidence": "Dimensions, actual targets, mean actor latent, sampled training decoder, beta50 mean KL, fixed LR/full 16 updates, current target, flat maps, first-episode mean evaluation and single-GPU scope agree. README explicitly separates CPU checks from real simulation/walking."
+    }
+  ],
+  "nonblocking_compatibility_boundary": {
+    "references": [
+      "estnet/run.py:73",
+      "estnet/config.py:9"
+    ],
+    "fact": "New bundle EstNet keeps schema g1-estnet-ppo-clip-flat-v1 but now requires variant/VAE protocol fields even for pure EstNet. Existing standalone new EstNet config lacks these fields, so its checkpoints will not load through the new bundle. The original frozen EstNet entry remains unaffected; five new variants and bundle-native checkpoints are unaffected.",
+    "recommendation": "Keep evaluating/resuming the existing standalone EstNet with its frozen original source and explicitly document this compatibility boundary. Do not silently fill missing protocol fields."
+  },
+  "limitations": [
+    "No GPU, Isaac startup, PhysX, contact-response, memory-throughput or learned walking validation was performed in this review.",
+    "Parent separately reported fakeIsaac full runner tests and CPU environment-method tests; this review did not rerun those or already passed model tests.",
+    "Static source identity shows configured physical behavior is unchanged; it is not a new live solver readback.",
+    "VAE critic152 and past-only history differ from EstNet critic61/current-inclusive history. This is not a head-only controlled ablation.",
+    "Flat heightmaps are exact only on horizontal plane. The 18/81 grid and reconstruction/latent conventions remain explicit engineering choices."
+  ],
+  "training_started_by_reviewer": false,
+  "physical_walking_verified": false,
+  "remote_mutations": false,
+  "source_edits": false
+}

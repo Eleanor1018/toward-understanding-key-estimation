@@ -1,0 +1,243 @@
+{
+  "completed_at": "2026-09-07T15:02:45.739006+08:00",
+  "status": "cpu_code_validation_passed",
+  "command": "python -X utf8 -B -m pytest -q tests --junitxml=verification-junit.xml",
+  "cwd": ".",
+  "python_executable": "CPU test environment; portable publication omits local absolute path",
+  "python": "3.12.14",
+  "torch": "2.5.1+cpu",
+  "tests_passed": 109,
+  "subtests_passed": 243,
+  "junit_total_including_subtests": 352,
+  "failures": 0,
+  "seconds": 25.1,
+  "junit_sha256": "b5420ff40eed5b77e5046bf66dd10b6bcf79c2b35c239221d0c073932028356c",
+  "junit_publication_sanitization": {
+    "removed_attributes": [
+      "hostname"
+    ],
+    "testcase_results_changed": false
+  },
+  "entry_point_checks": [
+    {
+      "script": "train.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "train_key1.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "train_key2.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "train_fullest.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "train_irrest.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "train_implicit.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    },
+    {
+      "script": "run.py",
+      "returncode": 0,
+      "chinese_help": true,
+      "default_target_10000_documented": true
+    }
+  ],
+  "compiled_python_files": 43,
+  "default_model_construction": {
+    "estnet": {
+      "schema": "g1-estnet-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {
+        "velocity": 3
+      },
+      "parameters": 4897180,
+      "actor_input": 52,
+      "critic_input": 61,
+      "decoder_input": null,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": false,
+      "vae_beta": null
+    },
+    "key1": {
+      "schema": "g1-key1-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {
+        "velocity": 3
+      },
+      "parameters": 5442534,
+      "actor_input": 68,
+      "critic_input": 152,
+      "decoder_input": 19,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": true,
+      "vae_beta": 50.0
+    },
+    "key2": {
+      "schema": "g1-key2-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {
+        "velocity": 3,
+        "heightmap": 18
+      },
+      "parameters": 5481720,
+      "actor_input": 86,
+      "critic_input": 152,
+      "decoder_input": 37,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": true,
+      "vae_beta": 50.0
+    },
+    "fullest": {
+      "schema": "g1-fullest-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {
+        "velocity": 3,
+        "heightmap": 18,
+        "body_height": 1
+      },
+      "parameters": 5483897,
+      "actor_input": 87,
+      "critic_input": 152,
+      "decoder_input": 38,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": true,
+      "vae_beta": 50.0
+    },
+    "irrest": {
+      "schema": "g1-irrest-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {
+        "body_height": 1
+      },
+      "parameters": 5438180,
+      "actor_input": 66,
+      "critic_input": 152,
+      "decoder_input": 17,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": true,
+      "vae_beta": 50.0
+    },
+    "implicit": {
+      "schema": "g1-implicit-ppo-clip-flat-isaac51-v1",
+      "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+      "supervision_dims": {},
+      "parameters": 5436003,
+      "actor_input": 65,
+      "critic_input": 152,
+      "decoder_input": 16,
+      "self_collisions": true,
+      "soft_joint_target_clipping": false,
+      "hip_yaw_target_limit_rad": 0.3490658503988659,
+      "learning_rate": 0.0005,
+      "clip": 0.2,
+      "latent_kl_in_loss": true,
+      "vae_beta": 50.0
+    }
+  },
+  "default_target_iterations": 10000,
+  "initialization": "six_independent_fresh_seed42_4096env",
+  "checkpoint_at_500_is_not_a_stop_condition": true,
+  "required_runtime_protocol": {
+    "simulation_protocol": "isaacsim-5.1.0-lab-2.3.2-stabilized-v1",
+    "checkpoint_schema": "g1-{variant}-ppo-clip-flat-isaac51-v1",
+    "python": "3.11",
+    "torch": "2.7.0+cu128",
+    "torch_cuda": "12.8",
+    "isaacsim": "5.1.0.0",
+    "isaaclab_commit": "37ddf626871758333d6ed89cf64ad702aef127d0",
+    "physx_explicit": {
+      "enable_stabilization": true,
+      "solve_articulation_contact_last": false,
+      "enable_external_forces_every_iteration": false
+    },
+    "real_runner_check": "Strict before any CUDA/AppLauncher initialization; CPU runner fixtures explicitly patch this boundary"
+  },
+  "unchanged_from_paper_variants_ppo_clip_sha256": {
+    "estnet/ppo.py": "2ec507c0beb73a42dfa35b173b8b4901c3febc492b271b0f304f84994c462871",
+    "estnet/key_ppo.py": "41e78fc52ecbf73f235cd6d1bc12fc5905c9f9e953fc76295565dc81a7fe8a9f",
+    "estnet/ablation_ppo.py": "ddec1e2c4c59b2bc19741201c0f0d3f9b5e18c3ff4135f9cfca124540bc049be",
+    "estnet/networks.py": "ec7f8085fc4948718c8cba2e21004dbf388b98929d02c6e85a7089f9e839a5e9",
+    "estnet/key_networks.py": "ca161a3c3ee8cb54724ff38ee53eae9daf1de3b58d2f484a325c2e67dd0908ad",
+    "estnet/ablation_networks.py": "03e3507c292167c80d5acdc8bd4ad9ac3a62a1911aae222b66214f5325f9e7ff",
+    "estnet/robot.py": "c320f49bda2165d69e4bfa2d790ec62b17482b4bd90ce942602017065ec6dc58",
+    "estnet/rewards.py": "b32ba6e7b5cba13a6a0ef728b7b7f0a769915dc530c4c97a85661d9be166c474",
+    "estnet/gait.py": "cedc3470702a13a55c84b4d7d6854bad0c60e904324ae96421b2f52b604fc492",
+    "estnet/history.py": "e938d4cb562aaa7a03b83c969226a0ab5e696853b12e2cf413c28d4fa931146d",
+    "estnet/heightmaps.py": "d9246d3dd493f459aafeba03151ba421010a58efad35b41c3a15bd38862cadff",
+    "estnet/resume.py": "f138a05b0499546f25a7e7fa7effdb5b77e4ff485132a8d5f9de998bfac0dd32"
+  },
+  "unchanged_module_count": 12,
+  "shared_algorithm_action_reward_config_changed": false,
+  "additional_runtime_unit_tests": {
+    "passed": 14,
+    "final_new_files_ruff": "all checks passed"
+  },
+  "operator_validation": {
+    "status": "separate_cpu_tests_passed_reported_by_parent_and_operator_reviewer",
+    "tests_passed": 35,
+    "rerun_during_publication": false,
+    "real_gpu_tested_by_publication": false,
+    "included_file_sha256": {
+      "launch_all.py": "940ee01d49dc60b5365e13349b83349200fe897dcda97c57e805901652a27003",
+      "train_supervisor.py": "3fbb77771e4cd236e483af67db1c483e6cc0922f4c9bf52a67a7afb50323ca4f",
+      "test_supervisor.py": "970aee0e0abe47f64219f5a2a84b3a8dbe99cfecd1d1867ec085e09cae57ca04"
+    },
+    "original_35_test_source_sha256": "c60f0f221016b3aae85fe481be2e52f1f09b4519d8f8e25cf05a2ec6171e6622",
+    "publication_test_path_adaptation": {
+      "change": "Test source lookup uses package root parents[1] instead of a work-directory-specific child name. Both operator programs unchanged.",
+      "targeted_test": "test_real_cpu_checkpoint_strict_model_adam_schema_and_counts",
+      "parameterized_cases_passed": 6,
+      "seconds": 5.63,
+      "command": "python -X utf8 -B -m pytest -q <package>/operators/test_supervisor.py::test_real_cpu_checkpoint_strict_model_adam_schema_and_counts",
+      "cwd": "outside_package_root",
+      "gpu_initialized": false
+    },
+    "operator_programs_byte_identical": true
+  },
+  "real_isaac_simulation_tested": false,
+  "walking_verified": false,
+  "scope": "Real CPU model/auxiliary/PPO/collector/checkpoint/runner code. Isaac launcher/physics and strict runtime boundary substituted only in CPU runner fixtures; production config builder executes on tensor/object fixtures. Default full-width six models constructed on CPU.",
+  "simulation_migration_limit": "Explicit legacy settings preserved, but changing Sim/PhysX/Torch does not prove numerically identical dynamics or contact trajectories.",
+  "deployment_runtime_status_included": false,
+  "publication_test_validation_finished_at": "2026-09-07T15:07:17.773885+08:00"
+}
